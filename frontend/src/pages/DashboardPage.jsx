@@ -8,6 +8,7 @@ const studentCards = [
   { title: 'Course Books', desc: 'Browse and download textbooks', path: '/books', color: 'bg-green-500' },
   { title: 'Flashcards', desc: 'Study with AI-generated flashcards', path: '/flashcards', color: 'bg-purple-500' },
   { title: 'Quizzes', desc: 'Test your knowledge with AI quizzes', path: '/quiz', color: 'bg-indigo-500' },
+  { title: 'Badges', desc: 'View your earned and locked badges', path: '/badges', color: 'bg-pink-500' },
   { title: 'Leaderboard', desc: 'See how you rank among peers', path: '/leaderboard', color: 'bg-yellow-500' },
   { title: 'My Portfolio', desc: 'View and edit your profile', path: '/portfolio', color: 'bg-orange-500' },
   { title: 'Gradesheet', desc: 'Upload grades and get a study plan', path: '/gradesheet', color: 'bg-red-500' },
@@ -89,7 +90,10 @@ export default function DashboardPage() {
 
           {/* Badges */}
           <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
-            <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Badges Earned</p>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Badges Earned</p>
+              <Link to="/badges" className="text-xs text-primary-600 dark:text-primary-400 hover:underline">View all</Link>
+            </div>
             {profile.badges.length === 0 ? (
               <p className="text-xs text-gray-400">Complete activities to earn badges!</p>
             ) : (

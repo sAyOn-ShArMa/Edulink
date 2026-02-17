@@ -49,6 +49,7 @@ export default function Sidebar({ isOpen, onClose }) {
           <>
             <NavLink to="/flashcards" className={linkClass} onClick={onClose}>Flashcards</NavLink>
             <NavLink to="/quiz" className={linkClass} onClick={onClose}>Quizzes</NavLink>
+            <NavLink to="/badges" className={linkClass} onClick={onClose}>Badges</NavLink>
             <NavLink to="/leaderboard" className={linkClass} onClick={onClose}>Leaderboard</NavLink>
             <NavLink to="/portfolio" className={linkClass} onClick={onClose}>My Portfolio</NavLink>
             <NavLink to="/gradesheet" className={linkClass} onClick={onClose}>Gradesheet</NavLink>

@@ -15,6 +15,7 @@ import OperatorPage from './pages/OperatorPage';
 import DirectMessagesPage from './pages/DirectMessagesPage';
 import QuizPage from './pages/QuizPage';
 import LeaderboardPage from './pages/LeaderboardPage';
+import BadgesPage from './pages/BadgesPage';
 
 function AppLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -54,6 +55,7 @@ export default function App() {
       <Route path="/messages" element={<ProtectedRoute><AppLayout><DirectMessagesPage /></AppLayout></ProtectedRoute>} />
       <Route path="/quiz" element={<ProtectedRoute><AppLayout><QuizPage /></AppLayout></ProtectedRoute>} />
       <Route path="/leaderboard" element={<ProtectedRoute><AppLayout><LeaderboardPage /></AppLayout></ProtectedRoute>} />
+      <Route path="/badges" element={<ProtectedRoute><AppLayout><BadgesPage /></AppLayout></ProtectedRoute>} />
       <Route path="/operator" element={<ProtectedRoute><AppLayout><OperatorPage /></AppLayout></ProtectedRoute>} />
 
       <Route path="*" element={<Navigate to="/" />} />
