@@ -1,0 +1,7 @@
+node_modules/
+.env
+edulink.db
+uploads/pdfs/*
+uploads/gradesheets/*
+!uploads/pdfs/.gitkeep
+!uploads/gradesheets/.gitkeep

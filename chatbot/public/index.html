@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chatbot - Internet Search Enabled</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="chat-header">
+            <h1>AI Chatbot</h1>
+            <p>Ask me anything - I can search the internet for you!</p>
+        </div>
+
+        <div class="chat-container" id="chatContainer">
+            <div class="message bot-message">
+                <div class="message-content">
+                    <strong>Bot:</strong> Hello! I'm your AI assistant with internet search capabilities. Ask me anything and I'll search the web to give you the most accurate and up-to-date information!
+                </div>
+            </div>
+        </div>
+
+        <div class="input-container">
+            <textarea
+                id="userInput"
+                placeholder="Type your question here..."
+                rows="3"
+            ></textarea>
+            <button id="sendBtn" onclick="sendMessage()">
+                <span id="btnText">Send</span>
+                <span id="btnLoader" class="loader" style="display: none;"></span>
+            </button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
