@@ -9,7 +9,6 @@ import DashboardPage from './pages/DashboardPage';
 import ClassesPage from './pages/ClassesPage';
 import CourseBooksPage from './pages/CourseBooksPage';
 import FlashcardPage from './pages/FlashcardPage';
-import PortfolioPage from './pages/PortfolioPage';
 import GradesheetPage from './pages/GradesheetPage';
 import OperatorPage from './pages/OperatorPage';
 import DirectMessagesPage from './pages/DirectMessagesPage';
@@ -50,7 +49,6 @@ export default function App() {
       <Route path="/classes" element={<ProtectedRoute><AppLayout><ClassesPage /></AppLayout></ProtectedRoute>} />
       <Route path="/books" element={<ProtectedRoute><AppLayout><CourseBooksPage /></AppLayout></ProtectedRoute>} />
       <Route path="/flashcards" element={<ProtectedRoute><AppLayout><FlashcardPage /></AppLayout></ProtectedRoute>} />
-      <Route path="/portfolio" element={<ProtectedRoute><AppLayout><PortfolioPage /></AppLayout></ProtectedRoute>} />
       <Route path="/gradesheet" element={<ProtectedRoute><AppLayout><GradesheetPage /></AppLayout></ProtectedRoute>} />
       <Route path="/messages" element={<ProtectedRoute><AppLayout><DirectMessagesPage /></AppLayout></ProtectedRoute>} />
       <Route path="/quiz" element={<ProtectedRoute><AppLayout><QuizPage /></AppLayout></ProtectedRoute>} />

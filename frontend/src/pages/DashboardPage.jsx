@@ -10,7 +10,6 @@ const studentCards = [
   { title: 'Quizzes', desc: 'Test your knowledge with AI quizzes', path: '/quiz', color: 'bg-indigo-500' },
   { title: 'Badges', desc: 'View your earned and locked badges', path: '/badges', color: 'bg-pink-500' },
   { title: 'Leaderboard', desc: 'See how you rank among peers', path: '/leaderboard', color: 'bg-yellow-500' },
-  { title: 'My Portfolio', desc: 'View and edit your profile', path: '/portfolio', color: 'bg-orange-500' },
   { title: 'Gradesheet', desc: 'Upload grades and get a study plan', path: '/gradesheet', color: 'bg-red-500' },
   { title: 'Classes', desc: 'View your enrolled classes', path: '/classes', color: 'bg-teal-500' },
 ];
