@@ -7,7 +7,7 @@ module.exports = function (io) {
     const token = socket.handshake.auth.token;
     if (!token) return next(new Error('No token'));
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'edulink_fallback_secret');
       socket.user = decoded;
       next();
     } catch {

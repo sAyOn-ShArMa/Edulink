@@ -8,7 +8,7 @@ function authenticate(req, res, next) {
 
   try {
     const token = header.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'edulink_fallback_secret');
     req.user = decoded;
     next();
   } catch {
