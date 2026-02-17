@@ -34,6 +34,11 @@ exports.generate = async (req, res) => {
       }
     }
 
+    // Require at least a unit selection — full book scope is not allowed
+    if (scope === 'full_book') {
+      return res.status(400).json({ error: 'Please select a unit or chapter. Full book generation is not supported.' });
+    }
+
     let title;
     let questions;
 
@@ -44,8 +49,7 @@ exports.generate = async (req, res) => {
       title = `Quiz: Unit ${unitNumber} - ${unitTitle || 'Assessment'}`;
       questions = await generateQuizQuestions(book.extracted_text, scope, unitTitle);
     } else {
-      title = `Quiz: ${book.title} - Full Book`;
-      questions = await generateQuizQuestions(book.extracted_text, scope, null);
+      return res.status(400).json({ error: 'Please select a unit or chapter.' });
     }
 
     // Save quiz set
@@ -128,6 +132,25 @@ exports.getSet = (req, res) => {
   const safeQuestions = questions.map(({ correct_option, ...q }) => q);
 
   res.json({ set, questions: safeQuestions });
+};
+
+// DELETE /api/quiz/sets/:setId — Delete a quiz set and its questions
+exports.deleteSet = (req, res) => {
+  try {
+    const setId = parseInt(req.params.setId);
+    const set = db.prepare('SELECT * FROM quiz_sets WHERE id = ?').get(setId);
+    if (!set) return res.status(404).json({ error: 'Quiz not found' });
+
+    // Delete questions and attempts first, then the set
+    db.prepare('DELETE FROM quiz_attempts WHERE quiz_set_id = ?').run(setId);
+    db.prepare('DELETE FROM quiz_questions WHERE quiz_set_id = ?').run(setId);
+    db.prepare('DELETE FROM quiz_sets WHERE id = ?').run(setId);
+
+    res.json({ message: 'Quiz deleted' });
+  } catch (err) {
+    console.error('Delete quiz set error:', err);
+    res.status(500).json({ error: 'Failed to delete quiz' });
+  }
 };
 
 // POST /api/quiz/sets/:setId/submit — Submit quiz answers and get results

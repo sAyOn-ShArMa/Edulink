@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { getMyClasses } from '../api/class.api';
 import { getBookStructure } from '../api/flashcard.api';
-import { generateQuiz, getQuizSets, getQuizSet, submitQuiz } from '../api/quiz.api';
+import { generateQuiz, getQuizSets, getQuizSet, deleteQuizSet, submitQuiz } from '../api/quiz.api';
 import { completeQuiz } from '../api/gamification.api';
 
 export default function QuizPage() {
@@ -79,19 +79,28 @@ export default function QuizPage() {
     }
   };
 
+  const handleDeleteSet = async (e, setId) => {
+    e.stopPropagation();
+    if (!confirm('Delete this quiz?')) return;
+    try {
+      await deleteQuizSet(setId);
+      setSets((prev) => prev.filter((s) => s.id !== setId));
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to delete');
+    }
+  };
+
   const handleGenerate = async () => {
-    if (!selectedBook) return;
+    if (!selectedBook || !selectedUnit) return;
     setGenerating(true);
     try {
       let scope, unitNumber, chapterTitle;
       if (selectedChapter) {
         scope = 'chapter';
         chapterTitle = selectedChapter;
-      } else if (selectedUnit) {
+      } else {
         scope = 'unit';
         unitNumber = selectedUnit.unit_number;
-      } else {
-        scope = 'full_book';
       }
 
       const res = await generateQuiz(selectedBook.id, scope, unitNumber, chapterTitle);
@@ -166,7 +175,7 @@ export default function QuizPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wider">2. Unit</label>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wider">2. Unit (required)</label>
                   <select
                     value={selectedUnit?.unit_number || ''}
                     onChange={(e) => {
@@ -177,7 +186,7 @@ export default function QuizPage() {
                     disabled={!selectedBook || units.length === 0}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm outline-none bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 disabled:opacity-50"
                   >
-                    <option value="">All units</option>
+                    <option value="">Select a unit...</option>
                     {units.map((u) => <option key={u.unit_number} value={u.unit_number}>Unit {u.unit_number}: {u.title}</option>)}
                   </select>
                 </div>
@@ -201,12 +210,12 @@ export default function QuizPage() {
                     : selectedUnit
                       ? `Quiz for Unit ${selectedUnit.unit_number}: ${selectedUnit.title}`
                       : selectedBook
-                        ? `Quiz for full book: ${selectedBook.title}`
+                        ? 'Select a unit to continue'
                         : 'Select a book to start'}
                 </p>
                 <button
                   onClick={handleGenerate}
-                  disabled={!selectedBook || generating}
+                  disabled={!selectedBook || !selectedUnit || generating}
                   className="bg-indigo-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50"
                 >
                   {generating ? 'Generating...' : 'Generate Quiz'}
@@ -221,17 +230,21 @@ export default function QuizPage() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {sets.map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => openQuiz(s.id)}
-                  className="text-left bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-5 hover:shadow-md dark:hover:shadow-gray-900/50 transition-shadow"
-                >
-                  <h3 className="font-semibold text-gray-900 dark:text-white">{s.title}</h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{s.book_title}</p>
-                  <p className="text-xs text-gray-400 mt-2">
-                    {s.scope === 'chapter' ? 'Chapter' : s.scope === 'unit' ? `Unit ${s.unit_number}` : 'Full Book'}
-                  </p>
-                </button>
+                <div key={s.id} className="relative bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-5 hover:shadow-md dark:hover:shadow-gray-900/50 transition-shadow">
+                  <button onClick={() => openQuiz(s.id)} className="text-left w-full">
+                    <h3 className="font-semibold text-gray-900 dark:text-white pr-8">{s.title}</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{s.book_title}</p>
+                    <p className="text-xs text-gray-400 mt-2">
+                      {s.scope === 'chapter' ? 'Chapter' : s.scope === 'unit' ? `Unit ${s.unit_number}` : 'Full Book'}
+                    </p>
+                  </button>
+                  <button onClick={(e) => handleDeleteSet(e, s.id)}
+                    className="absolute top-3 right-3 p-1.5 text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors" title="Delete quiz">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
               ))}
             </div>
           )}

@@ -34,6 +34,11 @@ exports.generate = async (req, res) => {
       }
     }
 
+    // Require at least a unit selection — full book scope is not allowed
+    if (scope === 'full_book') {
+      return res.status(400).json({ error: 'Please select a unit or chapter. Full book generation is not supported.' });
+    }
+
     let title;
     let cards;
 
@@ -44,8 +49,7 @@ exports.generate = async (req, res) => {
       title = `Unit ${unitNumber} - ${unitTitle || 'Flashcards'}`;
       cards = await generateFlashcards(book.extracted_text, scope, unitTitle);
     } else {
-      title = `${book.title} - Full Book`;
-      cards = await generateFlashcards(book.extracted_text, scope, null);
+      return res.status(400).json({ error: 'Please select a unit or chapter.' });
     }
 
     const setResult = db.prepare(
@@ -114,6 +118,24 @@ exports.getSet = (req, res) => {
 
   const flashcards = db.prepare('SELECT * FROM flashcards WHERE set_id = ?').all(setId);
   res.json({ set, flashcards });
+};
+
+// DELETE /api/flashcards/sets/:setId — Delete a flashcard set and its cards
+exports.deleteSet = (req, res) => {
+  try {
+    const setId = parseInt(req.params.setId);
+    const set = db.prepare('SELECT * FROM flashcard_sets WHERE id = ?').get(setId);
+    if (!set) return res.status(404).json({ error: 'Set not found' });
+
+    // Delete flashcards first, then the set
+    db.prepare('DELETE FROM flashcards WHERE set_id = ?').run(setId);
+    db.prepare('DELETE FROM flashcard_sets WHERE id = ?').run(setId);
+
+    res.json({ message: 'Flashcard set deleted' });
+  } catch (err) {
+    console.error('Delete flashcard set error:', err);
+    res.status(500).json({ error: 'Failed to delete flashcard set' });
+  }
 };
 
 /**
