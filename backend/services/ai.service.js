@@ -2,12 +2,19 @@ const groq = require('../config/groq');
 
 const MODEL = 'llama-3.3-70b-versatile';
 
+function requireGroq() {
+  if (!groq) {
+    throw new Error('AI features are disabled — GROQ_API_KEY is not configured');
+  }
+  return groq;
+}
+
 async function summarizeTeacherMessages(messages) {
   const formatted = messages
     .map((m) => `[${m.created_at}] ${m.sender_name}: ${m.content}`)
     .join('\n');
 
-  const response = await groq.chat.completions.create({
+  const response = await requireGroq().chat.completions.create({
     model: MODEL,
     max_tokens: 1024,
     messages: [
@@ -34,7 +41,7 @@ Summary:`,
 }
 
 async function structurePdfContent(rawText) {
-  const response = await groq.chat.completions.create({
+  const response = await requireGroq().chat.completions.create({
     model: MODEL,
     max_tokens: 2048,
     response_format: { type: 'json_object' },
@@ -70,7 +77,7 @@ async function generateFlashcards(text, scope, unitTitle) {
       ? `Focus only on the content related to: "${unitTitle}"`
       : 'Cover the entire book content';
 
-  const response = await groq.chat.completions.create({
+  const response = await requireGroq().chat.completions.create({
     model: MODEL,
     max_tokens: 4096,
     response_format: { type: 'json_object' },
@@ -115,7 +122,7 @@ ${text.substring(0, 12000)}`,
 }
 
 async function analyzeGradesheet(extractedData) {
-  const response = await groq.chat.completions.create({
+  const response = await requireGroq().chat.completions.create({
     model: MODEL,
     max_tokens: 4096,
     response_format: { type: 'json_object' },
@@ -164,7 +171,7 @@ Return as JSON:
 }
 
 async function parseGradesheetText(rawText) {
-  const response = await groq.chat.completions.create({
+  const response = await requireGroq().chat.completions.create({
     model: MODEL,
     max_tokens: 2048,
     response_format: { type: 'json_object' },
@@ -202,7 +209,7 @@ async function chatAssistant(question, context) {
     .map((m) => `[${m.sender_role}] ${m.sender_name}: ${m.content}`)
     .join('\n');
 
-  const response = await groq.chat.completions.create({
+  const response = await requireGroq().chat.completions.create({
     model: MODEL,
     max_tokens: 1024,
     messages: [
@@ -232,7 +239,7 @@ Student's question: ${question}`,
 }
 
 async function generateChapterFlashcards(text, chapterTitle) {
-  const response = await groq.chat.completions.create({
+  const response = await requireGroq().chat.completions.create({
     model: MODEL,
     max_tokens: 4096,
     response_format: { type: 'json_object' },
@@ -282,7 +289,7 @@ async function generateQuizQuestions(text, scope, unitTitle) {
       ? `Focus only on the content related to: "${unitTitle}"`
       : 'Cover the entire book content';
 
-  const response = await groq.chat.completions.create({
+  const response = await requireGroq().chat.completions.create({
     model: MODEL,
     max_tokens: 4096,
     response_format: { type: 'json_object' },
@@ -336,7 +343,7 @@ ${text.substring(0, 12000)}`,
 
 // Generate MCQ quiz questions for a specific chapter
 async function generateChapterQuiz(text, chapterTitle) {
-  const response = await groq.chat.completions.create({
+  const response = await requireGroq().chat.completions.create({
     model: MODEL,
     max_tokens: 4096,
     response_format: { type: 'json_object' },
