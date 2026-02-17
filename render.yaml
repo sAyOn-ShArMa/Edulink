@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: edulink
+    runtime: node
+    buildCommand: cd backend && npm install && cd ../frontend && npm install && npm run build
+    startCommand: cd backend && node index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: GROQ_API_KEY
+        sync: false
+      - key: CLIENT_URL
+        value: https://edulink.onrender.com
+      - key: DATA_DIR
+        value: /opt/render/project/src/backend/data
+    disk:
+      name: edulink-data
+      mountPath: /opt/render/project/src/backend/data
+      sizeGB: 1

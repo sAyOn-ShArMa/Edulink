@@ -20,6 +20,9 @@ router.get('/conversations/:conversationId/messages', authenticate, verifyConver
 // Send a message in a conversation (access verified)
 router.post('/conversations/:conversationId/messages', authenticate, verifyConversationAccess, dm.sendMessage);
 
+// Delete a conversation and all its messages (access verified)
+router.delete('/conversations/:conversationId', authenticate, verifyConversationAccess, dm.deleteConversation);
+
 // AI assistant within a conversation (access verified, students only)
 router.post('/conversations/:conversationId/ai-assist', authenticate, requireRole('student'), verifyConversationAccess, dm.aiAssist);
 

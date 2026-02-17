@@ -3,7 +3,9 @@ const bcrypt = require('bcryptjs');
 const fs = require('fs');
 const path = require('path');
 
-const DB_PATH = path.join(__dirname, '..', 'edulink.db');
+// In production with Render Disk, store DB in persistent mount; otherwise local
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '..');
+const DB_PATH = path.join(DATA_DIR, 'edulink.db');
 
 // sql.js wrapper that provides a better-sqlite3-compatible sync API
 // The database is initialized async, but all queries after init are sync

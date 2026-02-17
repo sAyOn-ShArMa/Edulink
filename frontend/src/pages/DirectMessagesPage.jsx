@@ -7,6 +7,7 @@ import {
   startConversation,
   getDmMessages,
   askAiAssistant,
+  deleteConversation,
 } from '../api/dm.api';
 
 export default function DirectMessagesPage() {
@@ -91,6 +92,20 @@ export default function DirectMessagesPage() {
       alert(err.response?.data?.error || 'AI assistant failed');
     } finally {
       setAiLoading(false);
+    }
+  };
+
+  const handleDeleteConversation = async (convoId) => {
+    if (!confirm('Delete this conversation? All messages will be permanently removed.')) return;
+    try {
+      await deleteConversation(convoId);
+      setConversations((prev) => prev.filter((c) => c.id !== convoId));
+      if (selectedConvo?.id === convoId) {
+        setSelectedConvo(null);
+        setMessages([]);
+      }
+    } catch {
+      alert('Failed to delete conversation');
     }
   };
 
@@ -208,10 +223,16 @@ export default function DirectMessagesPage() {
               <div className="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900/50 flex items-center justify-center text-primary-700 dark:text-primary-400 font-semibold text-sm">
                 {contactName(selectedConvo)?.[0]?.toUpperCase() || '?'}
               </div>
-              <div>
+              <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-gray-900 dark:text-white">{contactName(selectedConvo)}</p>
                 <p className="text-xs text-gray-400">{selectedConvo.class_name} &middot; {selectedConvo.class_subject}</p>
               </div>
+              <button onClick={() => handleDeleteConversation(selectedConvo.id)}
+                className="p-1.5 text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors" title="Delete conversation">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
             </div>
 
             {/* Messages */}

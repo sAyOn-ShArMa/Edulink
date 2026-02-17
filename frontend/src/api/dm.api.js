@@ -9,3 +9,5 @@ export const sendDmMessage = (conversationId, content) =>
   api.post(`/dm/conversations/${conversationId}/messages`, { content });
 export const askAiAssistant = (conversationId, question) =>
   api.post(`/dm/conversations/${conversationId}/ai-assist`, { question });
+export const deleteConversation = (conversationId) =>
+  api.delete(`/dm/conversations/${conversationId}`);

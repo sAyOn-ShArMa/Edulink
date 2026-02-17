@@ -14,7 +14,7 @@ const io = new Server(server, {
   cors: { origin: clientUrl, methods: ['GET', 'POST'] },
 });
 
-app.use(cors());
+app.use(cors({ origin: clientUrl }));
 app.use(express.json());
 
 async function start() {

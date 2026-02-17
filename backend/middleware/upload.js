@@ -1,9 +1,19 @@
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
+
+// Use persistent DATA_DIR in production (Render Disk), otherwise local uploads/
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '..');
+const PDF_DIR = path.join(DATA_DIR, 'uploads', 'pdfs');
+const GRADESHEET_DIR = path.join(DATA_DIR, 'uploads', 'gradesheets');
+
+// Ensure upload directories exist
+fs.mkdirSync(PDF_DIR, { recursive: true });
+fs.mkdirSync(GRADESHEET_DIR, { recursive: true });
 
 const pdfStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, path.join(__dirname, '..', 'uploads', 'pdfs'));
+    cb(null, PDF_DIR);
   },
   filename: (req, file, cb) => {
     const uniqueName = `${Date.now()}-${file.originalname}`;
@@ -13,7 +23,7 @@ const pdfStorage = multer.diskStorage({
 
 const gradesheetStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, path.join(__dirname, '..', 'uploads', 'gradesheets'));
+    cb(null, GRADESHEET_DIR);
   },
   filename: (req, file, cb) => {
     const uniqueName = `${Date.now()}-${file.originalname}`;

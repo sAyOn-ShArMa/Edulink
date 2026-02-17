@@ -211,6 +211,19 @@ exports.sendMessage = (req, res) => {
  * Ask the AI assistant a question within the conversation context.
  * The AI is aware of the class context and conversation history.
  */
+/**
+ * DELETE /api/dm/conversations/:conversationId
+ * Delete a conversation and all its messages (access verified by middleware).
+ */
+exports.deleteConversation = (req, res) => {
+  const conversationId = parseInt(req.params.conversationId);
+
+  db.prepare('DELETE FROM direct_messages WHERE conversation_id = ?').run(conversationId);
+  db.prepare('DELETE FROM direct_conversations WHERE id = ?').run(conversationId);
+
+  res.json({ message: 'Conversation deleted' });
+};
+
 exports.aiAssist = async (req, res) => {
   try {
     const conversationId = parseInt(req.params.conversationId);
