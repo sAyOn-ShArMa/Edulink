@@ -6,7 +6,7 @@ import {
   getStats, downloadPdf, uploadPdf,
 } from '../api/operator.api';
 import { getMyClasses, getAllClasses } from '../api/class.api';
-import { getPdfs } from '../api/pdf.api';
+import { getPdfs, deletePdf } from '../api/pdf.api';
 
 const tabs = ['Users', 'Classes', 'Enrollments', 'Course Materials'];
 
@@ -538,6 +538,16 @@ function MaterialsTab() {
     }
   };
 
+  const handleDelete = async (bookId) => {
+    if (!confirm('Delete this book?')) return;
+    try {
+      await deletePdf(bookId);
+      setBooks(books.filter((b) => b.id !== bookId));
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to delete book');
+    }
+  };
+
   return (
     <div>
       <div className="mb-4">
@@ -577,10 +587,16 @@ function MaterialsTab() {
                 <h4 className="font-medium text-gray-900 dark:text-white">{book.title}</h4>
                 <p className="text-xs text-gray-400 mt-1">Uploaded {new Date(book.created_at).toLocaleDateString()}</p>
               </div>
-              <button onClick={() => handleDownload(book)}
-                className="text-sm bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
-                Download
-              </button>
+              <div className="flex gap-2">
+                <button onClick={() => handleDownload(book)}
+                  className="text-sm bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
+                  Download
+                </button>
+                <button onClick={() => handleDelete(book.id)}
+                  className="text-sm text-red-500 hover:text-red-700 px-3 py-2 border border-red-200 dark:border-red-800 rounded-lg">
+                  Delete
+                </button>
+              </div>
             </div>
           ))}
         </div>

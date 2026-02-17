@@ -48,8 +48,12 @@ export default function CourseBooksPage() {
 
   const handleDelete = async (id) => {
     if (!confirm('Delete this book?')) return;
-    await deletePdf(id);
-    setBooks(books.filter((b) => b.id !== id));
+    try {
+      await deletePdf(id);
+      setBooks(books.filter((b) => b.id !== id));
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to delete book');
+    }
   };
 
   const handleDownload = async (book) => {
@@ -128,7 +132,7 @@ export default function CourseBooksPage() {
                     className="text-xs text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 px-3 py-1 border border-green-200 dark:border-green-800 rounded-lg">
                     Download
                   </button>
-                  {user?.role === 'teacher' && (
+                  {(user?.role === 'teacher' || user?.role === 'operator') && (
                     <button onClick={() => handleDelete(book.id)} className="text-xs text-red-500 hover:text-red-700 px-3 py-1 border border-red-200 dark:border-red-800 rounded-lg">Delete</button>
                   )}
                 </div>
@@ -149,12 +153,6 @@ export default function CourseBooksPage() {
                 </div>
               )}
 
-              <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
-                <button onClick={() => handleGenerateFlashcards(book, 'full_book')} disabled={generating === book.id}
-                  className="text-sm bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 disabled:opacity-50">
-                  {generating === book.id ? 'Generating Flashcards...' : 'Generate Flashcards (Full Book)'}
-                </button>
-              </div>
             </div>
           ))}
         </div>

@@ -17,8 +17,6 @@ const studentCards = [
 const teacherCards = [
   { title: 'Messages', desc: 'Message your students directly', path: '/messages', color: 'bg-blue-500' },
   { title: 'Course Books', desc: 'Upload textbooks for your classes', path: '/books', color: 'bg-green-500' },
-  { title: 'Flashcards', desc: 'View generated flashcard sets', path: '/flashcards', color: 'bg-purple-500' },
-  { title: 'Quizzes', desc: 'View generated quizzes', path: '/quiz', color: 'bg-indigo-500' },
   { title: 'Classes', desc: 'View your assigned classes', path: '/classes', color: 'bg-teal-500' },
 ];
 
@@ -68,10 +66,10 @@ export default function DashboardPage() {
             <div className="bg-gray-200 dark:bg-gray-700 rounded-full h-3 mb-2">
               <div
                 className="bg-gradient-to-r from-primary-500 to-primary-600 h-3 rounded-full transition-all"
-                style={{ width: `${(profile.xp.progress / 100) * 100}%` }}
+                style={{ width: `${Math.min((profile.xp.progress / profile.xp.xpNeeded) * 100, 100)}%` }}
               />
             </div>
-            <p className="text-xs text-gray-400">{profile.xp.progress}/100 XP to Level {profile.xp.level + 1}</p>
+            <p className="text-xs text-gray-400">{profile.xp.progress.toLocaleString()}/{profile.xp.xpNeeded.toLocaleString()} XP to Level {profile.xp.level + 1}</p>
           </div>
 
           {/* Streak */}

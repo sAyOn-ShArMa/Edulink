@@ -13,9 +13,32 @@ const XP_VALUES = {
   STREAK_BONUS_30: 100,
 };
 
-// Calculate level from XP (every 100 XP = 1 level)
+const MAX_LEVEL = 150;
+
+// XP needed to go from (level) to (level + 1)
+// Levels 1-9: 100 XP per level, 10-49: 1,000 XP per level, 50-149: 10,000 XP per level
+function xpForLevel(level) {
+  if (level < 10) return 100;
+  if (level < 50) return 1000;
+  return 10000;
+}
+
+// Cumulative XP required to reach a given level
+function getLevelThreshold(level) {
+  if (level <= 1) return 0;
+  let total = 0;
+  for (let l = 1; l < level; l++) {
+    total += xpForLevel(l);
+  }
+  return total;
+}
+
 function calculateLevel(totalXp) {
-  return Math.floor(totalXp / 100) + 1;
+  let level = 1;
+  while (level < MAX_LEVEL && totalXp >= getLevelThreshold(level + 1)) {
+    level++;
+  }
+  return level;
 }
 
 // Award XP to a student and check for badge unlocks
@@ -88,15 +111,18 @@ exports.getProfile = (req, res) => {
     `).all(studentId);
 
     // XP needed for next level
-    const xpForNextLevel = xp.level * 100;
-    const xpProgress = xp.total_xp % 100;
+    const currentLevelThreshold = getLevelThreshold(xp.level);
+    const nextLevelThreshold = getLevelThreshold(xp.level + 1);
+    const xpProgress = xp.total_xp - currentLevelThreshold;
+    const xpNeeded = nextLevelThreshold - currentLevelThreshold;
 
     res.json({
       xp: {
         total: xp.total_xp,
         level: xp.level,
         progress: xpProgress,
-        nextLevelAt: xpForNextLevel,
+        xpNeeded: xpNeeded,
+        nextLevelAt: nextLevelThreshold,
       },
       streak: {
         current: streak.current_streak,

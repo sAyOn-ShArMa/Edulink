@@ -42,13 +42,13 @@ export default function Sidebar({ isOpen, onClose }) {
             <NavLink to="/classes" className={linkClass} onClick={onClose}>Classes</NavLink>
             <NavLink to="/messages" className={linkClass} onClick={onClose}>Messages</NavLink>
             <NavLink to="/books" className={linkClass} onClick={onClose}>Course Books</NavLink>
-            <NavLink to="/flashcards" className={linkClass} onClick={onClose}>Flashcards</NavLink>
-            <NavLink to="/quiz" className={linkClass} onClick={onClose}>Quizzes</NavLink>
           </>
         )}
 
         {user?.role === 'student' && (
           <>
+            <NavLink to="/flashcards" className={linkClass} onClick={onClose}>Flashcards</NavLink>
+            <NavLink to="/quiz" className={linkClass} onClick={onClose}>Quizzes</NavLink>
             <NavLink to="/leaderboard" className={linkClass} onClick={onClose}>Leaderboard</NavLink>
             <NavLink to="/portfolio" className={linkClass} onClick={onClose}>My Portfolio</NavLink>
             <NavLink to="/gradesheet" className={linkClass} onClick={onClose}>Gradesheet</NavLink>

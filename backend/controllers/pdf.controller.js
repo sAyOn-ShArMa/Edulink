@@ -113,7 +113,7 @@ exports.remove = (req, res) => {
   const pdfId = parseInt(req.params.pdfId);
   const book = db.prepare('SELECT * FROM pdf_books WHERE id = ?').get(pdfId);
   if (!book) return res.status(404).json({ error: 'PDF not found' });
-  if (book.uploaded_by !== req.user.id) {
+  if (req.user.role !== 'teacher' && req.user.role !== 'operator') {
     return res.status(403).json({ error: 'Not authorized' });
   }
 
