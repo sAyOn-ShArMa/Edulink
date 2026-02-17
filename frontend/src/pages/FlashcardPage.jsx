@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
 import { getMyClasses } from '../api/class.api';
 import { getFlashcardSets, getFlashcardSet, getBookStructure, generateFlashcards } from '../api/flashcard.api';
+import { completeFlashcardSet } from '../api/gamification.api';
 
 export default function FlashcardPage() {
+  const { user } = useAuth();
   const [classes, setClasses] = useState([]);
   const [selectedClass, setSelectedClass] = useState(null);
   const [sets, setSets] = useState([]);
@@ -12,6 +15,7 @@ export default function FlashcardPage() {
   const [flipped, setFlipped] = useState(false);
   const [score, setScore] = useState({ correct: 0, incorrect: 0 });
   const [finished, setFinished] = useState(false);
+  const [xpResult, setXpResult] = useState(null);
 
   // Course -> Unit -> Chapter selector state
   const [books, setBooks] = useState([]);
@@ -60,8 +64,13 @@ export default function FlashcardPage() {
       if (currentIndex < cards.length - 1) {
         setCurrentIndex(currentIndex + 1);
       } else {
-        // Last card answered — show completion screen
+        // Last card answered — show completion screen and award XP
         setFinished(true);
+        if (user?.role === 'student' && activeSet) {
+          completeFlashcardSet(activeSet.id, newScore.correct, cards.length)
+            .then((res) => setXpResult(res.data))
+            .catch(() => {}); // silently fail XP award
+        }
       }
     }, 200);
   };
@@ -71,6 +80,7 @@ export default function FlashcardPage() {
     setFlipped(false);
     setScore({ correct: 0, incorrect: 0 });
     setFinished(false);
+    setXpResult(null);
   };
 
   const shuffle = () => {
@@ -85,11 +95,13 @@ export default function FlashcardPage() {
     setFlipped(false);
     setScore({ correct: 0, incorrect: 0 });
     setFinished(false);
+    setXpResult(null);
   };
 
   const closeSet = () => {
     setActiveSet(null);
     setCards([]);
+    setXpResult(null);
   };
 
   const handleGenerate = async () => {
@@ -271,6 +283,17 @@ export default function FlashcardPage() {
                     <p className="text-xs text-gray-400">Accuracy</p>
                   </div>
                 </div>
+                {xpResult && (
+                  <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-xl p-4 mb-6">
+                    <p className="text-yellow-700 dark:text-yellow-400 font-medium">+{xpResult.xpEarned} XP earned!</p>
+                    <p className="text-sm text-yellow-600 dark:text-yellow-500">Total: {xpResult.totalXp} XP (Level {xpResult.level})</p>
+                    {xpResult.newBadges?.length > 0 && (
+                      <p className="text-sm text-yellow-700 dark:text-yellow-400 mt-1">
+                        New badge: {xpResult.newBadges.map((b) => `${b.icon} ${b.name}`).join(', ')}
+                      </p>
+                    )}
+                  </div>
+                )}
                 <div className="flex justify-center gap-3">
                   <button onClick={restart}
                     className="px-6 py-2.5 bg-primary-600 text-white rounded-xl font-medium text-sm hover:bg-primary-700">

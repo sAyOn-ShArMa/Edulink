@@ -32,6 +32,8 @@ async function start() {
   app.use('/api/gradesheet', require('./routes/gradesheet.routes'));
   app.use('/api/operator', require('./routes/operator.routes'));
   app.use('/api/dm', require('./routes/dm.routes'));
+  app.use('/api/gamification', require('./routes/gamification.routes'));
+  app.use('/api/quiz', require('./routes/quiz.routes'));
 
   // Socket.IO handlers
   require('./services/socket.service')(io);

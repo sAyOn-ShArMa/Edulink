@@ -261,6 +261,104 @@ ${text.substring(0, 12000)}`,
   return parsed.flashcards || parsed;
 }
 
+// Generate MCQ quiz questions from textbook content
+async function generateQuizQuestions(text, scope, unitTitle) {
+  const scopeInstruction =
+    scope === 'unit'
+      ? `Focus only on the content related to: "${unitTitle}"`
+      : 'Cover the entire book content';
+
+  const response = await groq.chat.completions.create({
+    model: MODEL,
+    max_tokens: 4096,
+    response_format: { type: 'json_object' },
+    messages: [
+      {
+        role: 'system',
+        content: 'You are an educational quiz generator. Always respond with valid JSON only.',
+      },
+      {
+        role: 'user',
+        content: `Given the following textbook content, create multiple-choice quiz questions.
+${scopeInstruction}
+
+Generate 10-15 MCQ questions. For each question, provide:
+- A clear question
+- Four options (A, B, C, D)
+- The correct option letter
+- A difficulty level: easy, medium, or hard
+
+Return as a JSON object:
+{
+  "questions": [
+    {
+      "question": "...",
+      "option_a": "...",
+      "option_b": "...",
+      "option_c": "...",
+      "option_d": "...",
+      "correct_option": "A",
+      "difficulty": "medium"
+    }
+  ]
+}
+
+Textbook content:
+${text.substring(0, 12000)}`,
+      },
+    ],
+  });
+
+  const parsed = JSON.parse(response.choices[0].message.content);
+  return parsed.questions || parsed;
+}
+
+// Generate MCQ quiz questions for a specific chapter
+async function generateChapterQuiz(text, chapterTitle) {
+  const response = await groq.chat.completions.create({
+    model: MODEL,
+    max_tokens: 4096,
+    response_format: { type: 'json_object' },
+    messages: [
+      {
+        role: 'system',
+        content: 'You are an educational quiz generator. Always respond with valid JSON only.',
+      },
+      {
+        role: 'user',
+        content: `Given the following textbook content, create multiple-choice quiz questions specifically for the chapter titled: "${chapterTitle}"
+
+Generate 8-12 MCQ questions focused on this chapter. For each question, provide:
+- A clear question
+- Four options (A, B, C, D)
+- The correct option letter
+- A difficulty level: easy, medium, or hard
+
+Return as a JSON object:
+{
+  "questions": [
+    {
+      "question": "...",
+      "option_a": "...",
+      "option_b": "...",
+      "option_c": "...",
+      "option_d": "...",
+      "correct_option": "A",
+      "difficulty": "medium"
+    }
+  ]
+}
+
+Textbook content:
+${text.substring(0, 12000)}`,
+      },
+    ],
+  });
+
+  const parsed = JSON.parse(response.choices[0].message.content);
+  return parsed.questions || parsed;
+}
+
 module.exports = {
   summarizeTeacherMessages,
   structurePdfContent,
@@ -269,4 +367,6 @@ module.exports = {
   chatAssistant,
   analyzeGradesheet,
   parseGradesheetText,
+  generateQuizQuestions,
+  generateChapterQuiz,
 };

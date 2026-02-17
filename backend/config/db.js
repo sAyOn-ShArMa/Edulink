@@ -145,10 +145,127 @@ class Database {
         is_ai_response INTEGER DEFAULT 0,
         created_at TEXT DEFAULT (datetime('now'))
       );
+
+      -- Gamification: XP and points tracking
+      CREATE TABLE IF NOT EXISTS student_xp (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        student_id INTEGER NOT NULL REFERENCES users(id),
+        total_xp INTEGER DEFAULT 0,
+        level INTEGER DEFAULT 1,
+        UNIQUE(student_id)
+      );
+
+      -- XP transaction log (every XP earn event)
+      CREATE TABLE IF NOT EXISTS xp_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        student_id INTEGER NOT NULL REFERENCES users(id),
+        xp_amount INTEGER NOT NULL,
+        source TEXT NOT NULL,
+        source_id INTEGER DEFAULT NULL,
+        created_at TEXT DEFAULT (datetime('now'))
+      );
+
+      -- Badges definitions and student awards
+      CREATE TABLE IF NOT EXISTS badges (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT UNIQUE NOT NULL,
+        description TEXT NOT NULL,
+        icon TEXT NOT NULL,
+        criteria_type TEXT NOT NULL,
+        criteria_value INTEGER NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS student_badges (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        student_id INTEGER NOT NULL REFERENCES users(id),
+        badge_id INTEGER NOT NULL REFERENCES badges(id),
+        earned_at TEXT DEFAULT (datetime('now')),
+        UNIQUE(student_id, badge_id)
+      );
+
+      -- Daily login streaks
+      CREATE TABLE IF NOT EXISTS student_streaks (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        student_id INTEGER NOT NULL REFERENCES users(id),
+        current_streak INTEGER DEFAULT 0,
+        longest_streak INTEGER DEFAULT 0,
+        last_login_date TEXT DEFAULT NULL,
+        UNIQUE(student_id)
+      );
+
+      -- Quiz sets generated from course material
+      CREATE TABLE IF NOT EXISTS quiz_sets (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        pdf_book_id INTEGER NOT NULL REFERENCES pdf_books(id),
+        title TEXT NOT NULL,
+        scope TEXT NOT NULL,
+        unit_number INTEGER DEFAULT NULL,
+        chapter_title TEXT DEFAULT NULL,
+        created_at TEXT DEFAULT (datetime('now'))
+      );
+
+      -- Individual quiz questions (MCQ)
+      CREATE TABLE IF NOT EXISTS quiz_questions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        quiz_set_id INTEGER NOT NULL REFERENCES quiz_sets(id),
+        question TEXT NOT NULL,
+        option_a TEXT NOT NULL,
+        option_b TEXT NOT NULL,
+        option_c TEXT NOT NULL,
+        option_d TEXT NOT NULL,
+        correct_option TEXT NOT NULL CHECK(correct_option IN ('A', 'B', 'C', 'D')),
+        difficulty TEXT DEFAULT 'medium' CHECK(difficulty IN ('easy', 'medium', 'hard'))
+      );
+
+      -- Quiz attempt results
+      CREATE TABLE IF NOT EXISTS quiz_attempts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        student_id INTEGER NOT NULL REFERENCES users(id),
+        quiz_set_id INTEGER NOT NULL REFERENCES quiz_sets(id),
+        score INTEGER NOT NULL,
+        total INTEGER NOT NULL,
+        xp_earned INTEGER DEFAULT 0,
+        completed_at TEXT DEFAULT (datetime('now'))
+      );
     `;
     this.db.run(tables);
+    this._seedBadges();
     this._migrateFlashcardChapter();
     this._migrateClassTeachers();
+  }
+
+  // Seed default badge definitions
+  _seedBadges() {
+    try {
+      const existing = this.db.exec('SELECT COUNT(*) FROM badges');
+      const count = existing.length > 0 ? existing[0].values[0][0] : 0;
+      if (count === 0) {
+        const badges = [
+          ['First Steps', 'Complete your first flashcard set', '🎯', 'flashcard_sets_completed', 1],
+          ['Card Shark', 'Complete 5 flashcard sets', '🃏', 'flashcard_sets_completed', 5],
+          ['Flash Master', 'Complete 20 flashcard sets', '⚡', 'flashcard_sets_completed', 20],
+          ['Quiz Rookie', 'Complete your first quiz', '📝', 'quizzes_completed', 1],
+          ['Quiz Pro', 'Complete 10 quizzes', '🏆', 'quizzes_completed', 10],
+          ['Perfect Score', 'Get 100% on a quiz', '💯', 'perfect_quiz', 1],
+          ['XP Hunter', 'Earn 100 XP', '✨', 'total_xp', 100],
+          ['XP Champion', 'Earn 500 XP', '🌟', 'total_xp', 500],
+          ['XP Legend', 'Earn 2000 XP', '👑', 'total_xp', 2000],
+          ['Streak Starter', 'Maintain a 3-day streak', '🔥', 'streak', 3],
+          ['Week Warrior', 'Maintain a 7-day streak', '💪', 'streak', 7],
+          ['Streak Legend', 'Maintain a 30-day streak', '🏅', 'streak', 30],
+          ['Daily Learner', 'Log in for the first time', '📚', 'daily_login', 1],
+        ];
+        for (const [name, desc, icon, criteriaType, criteriaValue] of badges) {
+          this.db.run(
+            `INSERT INTO badges (name, description, icon, criteria_type, criteria_value) VALUES ('${name}', '${desc}', '${icon}', '${criteriaType}', ${criteriaValue})`
+          );
+        }
+        this._save();
+        console.log('Default badges seeded');
+      }
+    } catch (err) {
+      console.error('Badge seeding failed:', err.message);
+    }
   }
 
   // Migrate flashcard_sets to include chapter_number column
