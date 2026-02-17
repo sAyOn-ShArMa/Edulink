@@ -77,7 +77,12 @@ async function generateFlashcards(text, scope, unitTitle) {
     messages: [
       {
         role: 'system',
-        content: 'You are an educational flashcard generator. Always respond with valid JSON only.',
+        content: `You are an educational flashcard generator. Always respond with valid JSON only.
+
+CRITICAL RULES:
+- ONLY create flashcards about the ACTUAL SUBJECT MATTER and educational concepts taught in the chapters.
+- NEVER create questions about the book itself, such as: the book title, author name, publisher, publication date, page numbers, ISBN, edition number, table of contents structure, or any other book metadata.
+- Focus exclusively on the knowledge, definitions, concepts, facts, formulas, and theories that a student needs to learn from the chapter content.`,
       },
       {
         role: 'user',
@@ -88,6 +93,8 @@ Generate 15-25 flashcards. For each flashcard, provide:
 - A clear question or term on the "front"
 - A concise answer or definition on the "back"
 - A difficulty level: easy, medium, or hard
+
+IMPORTANT: Only ask about the actual subject matter taught in the chapters (concepts, definitions, facts, formulas, theories). Do NOT ask about the book's title, author, publisher, page numbers, or any metadata.
 
 Return as a JSON object with a "flashcards" key:
 {
@@ -232,16 +239,23 @@ async function generateChapterFlashcards(text, chapterTitle) {
     messages: [
       {
         role: 'system',
-        content: 'You are an educational flashcard generator. Always respond with valid JSON only.',
+        content: `You are an educational flashcard generator. Always respond with valid JSON only.
+
+CRITICAL RULES:
+- ONLY create flashcards about the ACTUAL SUBJECT MATTER and educational concepts taught in the chapter.
+- NEVER create questions about the book itself, such as: the book title, author name, publisher, publication date, page numbers, ISBN, edition number, table of contents structure, or any other book metadata.
+- Focus exclusively on the knowledge, definitions, concepts, facts, formulas, and theories that a student needs to learn from the chapter content.`,
       },
       {
         role: 'user',
-        content: `Given the following textbook content, create flashcards specifically for the chapter titled: "${chapterTitle}"
+        content: `Given the following textbook content, create flashcards specifically for the chapter/topic titled: "${chapterTitle}"
 
-Generate 10-20 flashcards focused on this chapter. For each flashcard, provide:
+Generate 10-20 flashcards focused on this chapter's subject matter. For each flashcard, provide:
 - A clear question or term on the "front"
 - A concise answer or definition on the "back"
 - A difficulty level: easy, medium, or hard
+
+IMPORTANT: Only ask about the actual subject matter taught in this chapter (concepts, definitions, facts, formulas, theories). Do NOT ask about the book's title, author, publisher, page numbers, or any metadata.
 
 Return as a JSON object with a "flashcards" key:
 {
@@ -275,7 +289,12 @@ async function generateQuizQuestions(text, scope, unitTitle) {
     messages: [
       {
         role: 'system',
-        content: 'You are an educational quiz generator. Always respond with valid JSON only.',
+        content: `You are an educational quiz generator. Always respond with valid JSON only.
+
+CRITICAL RULES:
+- ONLY create questions about the ACTUAL SUBJECT MATTER and educational concepts taught in the chapters.
+- NEVER create questions about the book itself, such as: the book title, author name, publisher, publication date, page numbers, ISBN, edition number, table of contents structure, or any other book metadata.
+- Focus exclusively on testing the knowledge, definitions, concepts, facts, formulas, and theories that a student needs to learn from the chapter content.`,
       },
       {
         role: 'user',
@@ -283,10 +302,12 @@ async function generateQuizQuestions(text, scope, unitTitle) {
 ${scopeInstruction}
 
 Generate 10-15 MCQ questions. For each question, provide:
-- A clear question
+- A clear question about the subject matter taught in the chapters
 - Four options (A, B, C, D)
 - The correct option letter
 - A difficulty level: easy, medium, or hard
+
+IMPORTANT: Only ask about the actual subject matter taught in the chapters (concepts, definitions, facts, formulas, theories). Do NOT ask about the book's title, author, publisher, page numbers, number of chapters, or any metadata.
 
 Return as a JSON object:
 {
@@ -322,17 +343,24 @@ async function generateChapterQuiz(text, chapterTitle) {
     messages: [
       {
         role: 'system',
-        content: 'You are an educational quiz generator. Always respond with valid JSON only.',
+        content: `You are an educational quiz generator. Always respond with valid JSON only.
+
+CRITICAL RULES:
+- ONLY create questions about the ACTUAL SUBJECT MATTER and educational concepts taught in this chapter.
+- NEVER create questions about the book itself, such as: the book title, author name, publisher, publication date, page numbers, ISBN, edition number, table of contents structure, or any other book metadata.
+- Focus exclusively on testing the knowledge, definitions, concepts, facts, formulas, and theories that a student needs to learn from the chapter content.`,
       },
       {
         role: 'user',
-        content: `Given the following textbook content, create multiple-choice quiz questions specifically for the chapter titled: "${chapterTitle}"
+        content: `Given the following textbook content, create multiple-choice quiz questions specifically for the chapter/topic titled: "${chapterTitle}"
 
-Generate 8-12 MCQ questions focused on this chapter. For each question, provide:
-- A clear question
+Generate 8-12 MCQ questions focused on this chapter's subject matter. For each question, provide:
+- A clear question about concepts taught in this chapter
 - Four options (A, B, C, D)
 - The correct option letter
 - A difficulty level: easy, medium, or hard
+
+IMPORTANT: Only ask about the actual subject matter taught in this chapter (concepts, definitions, facts, formulas, theories). Do NOT ask about the book's title, author, publisher, page numbers, or any metadata.
 
 Return as a JSON object:
 {
