@@ -19,7 +19,10 @@ class Database {
   }
 
   async init() {
-    const SQL = await initSqlJs();
+    const wasmDir = path.dirname(require.resolve('sql.js'));
+    const SQL = await initSqlJs({
+      locateFile: file => path.join(wasmDir, file)
+    });
 
     if (fs.existsSync(DB_PATH)) {
       const buffer = fs.readFileSync(DB_PATH);

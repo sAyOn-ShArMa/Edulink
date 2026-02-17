@@ -23,6 +23,11 @@ async function start() {
   await db.init();
   console.log('Database initialized');
 
+  // Health check
+  app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', dbReady: db.ready });
+  });
+
   // REST routes
   app.use('/api/auth', require('./routes/auth.routes'));
   app.use('/api/classes', require('./routes/class.routes'));
@@ -40,6 +45,7 @@ async function start() {
 
   // Serve frontend in production
   const frontendDist = path.join(__dirname, '..', 'frontend', 'dist');
+  console.log('Serving frontend from:', frontendDist);
   app.use(express.static(frontendDist));
   app.get('*', (req, res) => {
     if (!req.path.startsWith('/api') && !req.path.startsWith('/socket.io')) {
@@ -48,8 +54,8 @@ async function start() {
   });
 
   const PORT = process.env.PORT || 3001;
-  server.listen(PORT, () => {
-    console.log(`Edulink server running on http://localhost:${PORT}`);
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log(`Edulink server running on port ${PORT}`);
   });
 }
 
