@@ -7,6 +7,9 @@ const path = require('path');
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '..');
 const DB_PATH = path.join(DATA_DIR, 'edulink.db');
 
+// Ensure data directory exists
+fs.mkdirSync(DATA_DIR, { recursive: true });
+
 // sql.js wrapper that provides a better-sqlite3-compatible sync API
 // The database is initialized async, but all queries after init are sync
 class Database {
