@@ -34,6 +34,7 @@ class Database {
     this.db.run('PRAGMA foreign_keys = ON');
     this._createTables();
     this._migrateRoleConstraint();
+    this._migrateClassSection();
     this._seedOperator();
     this._save();
     this.ready = true;
@@ -319,6 +320,23 @@ class Database {
       }
     } catch (err) {
       // Table might not have data yet
+    }
+  }
+
+  // Migrate classes table: add section column if missing
+  _migrateClassSection() {
+    try {
+      const result = this.db.exec("PRAGMA table_info(classes)");
+      if (result.length > 0) {
+        const columns = result[0].values.map(row => row[1]);
+        if (!columns.includes('section')) {
+          this.db.run("ALTER TABLE classes ADD COLUMN section TEXT DEFAULT 'A'");
+          this._save();
+          console.log('Added section column to classes table');
+        }
+      }
+    } catch (err) {
+      console.error('Class section migration failed:', err.message);
     }
   }
 

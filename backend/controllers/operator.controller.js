@@ -88,10 +88,13 @@ exports.deleteUser = (req, res) => {
 
 // Create a class with an assigned teacher
 exports.createClass = (req, res) => {
-  const { name, subject, teacher_id } = req.body;
+  const { name, subject, teacher_id, section } = req.body;
   if (!name || !subject || !teacher_id) {
     return res.status(400).json({ error: 'Name, subject, and teacher_id are required' });
   }
+
+  const validSections = ['A', 'B', 'C', 'D'];
+  const resolvedSection = validSections.includes(section) ? section : 'A';
 
   const teacher = db.prepare('SELECT id, role FROM users WHERE id = ?').get(parseInt(teacher_id));
   if (!teacher || teacher.role !== 'teacher') {
@@ -100,8 +103,8 @@ exports.createClass = (req, res) => {
 
   try {
     const result = db.prepare(
-      'INSERT INTO classes (name, subject, teacher_id) VALUES (?, ?, ?)'
-    ).run(name, subject, parseInt(teacher_id));
+      'INSERT INTO classes (name, subject, teacher_id, section) VALUES (?, ?, ?, ?)'
+    ).run(name, subject, parseInt(teacher_id), resolvedSection);
 
     let cls = db.prepare('SELECT * FROM classes WHERE id = ?').get(result.lastInsertRowid);
     if (!cls) {
