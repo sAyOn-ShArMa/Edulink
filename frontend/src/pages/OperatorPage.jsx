@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   createUser, listUsers, deleteUser,
-  createClass, assignTeacher, removeTeacher, getClassTeachers,
+  createClass, deleteClass, assignTeacher, removeTeacher, getClassTeachers,
   enrollStudent, unenrollStudent, getClassStudents,
   getStats, downloadPdf, uploadPdf,
 } from '../api/operator.api';
@@ -235,6 +235,17 @@ function ClassesTab({ onUpdate }) {
     }
   };
 
+  const handleDeleteClass = async (id, name) => {
+    if (!confirm(`Delete class "${name}"? This will remove all enrollments and teacher assignments.`)) return;
+    try {
+      await deleteClass(id);
+      fetchData();
+      onUpdate();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to delete class');
+    }
+  };
+
   const handleManageTeachers = async (classId) => {
     if (managingTeachers === classId) {
       setManagingTeachers(null);
@@ -346,10 +357,16 @@ function ClassesTab({ onUpdate }) {
                 <span className="text-xs text-gray-400">
                   {c.teacher_name} &middot; {c.student_count} students
                 </span>
-                <button onClick={() => handleManageTeachers(c.id)}
-                  className="text-xs text-primary-600 dark:text-primary-400 hover:underline">
-                  {managingTeachers === c.id ? 'Close' : 'Manage Teachers'}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => handleManageTeachers(c.id)}
+                    className="text-xs text-primary-600 dark:text-primary-400 hover:underline">
+                    {managingTeachers === c.id ? 'Close' : 'Teachers'}
+                  </button>
+                  <button onClick={() => handleDeleteClass(c.id, c.name)}
+                    className="text-xs text-red-500 hover:text-red-700 px-2 py-1 border border-red-200 dark:border-red-800 rounded-lg">
+                    Delete
+                  </button>
+                </div>
               </div>
               {managingTeachers === c.id && (
                 <div className="mt-3 space-y-2">

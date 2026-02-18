@@ -128,6 +128,26 @@ exports.createClass = (req, res) => {
   }
 };
 
+// Delete a class and all related data
+exports.deleteClass = (req, res) => {
+  const classId = parseInt(req.params.id);
+  const cls = db.prepare('SELECT id FROM classes WHERE id = ?').get(classId);
+  if (!cls) {
+    return res.status(404).json({ error: 'Class not found' });
+  }
+
+  try {
+    // Remove all related data before deleting the class
+    db.prepare('DELETE FROM class_enrollments WHERE class_id = ?').run(classId);
+    db.prepare('DELETE FROM class_teachers WHERE class_id = ?').run(classId);
+    db.prepare('DELETE FROM classes WHERE id = ?').run(classId);
+    res.json({ message: 'Class deleted' });
+  } catch (err) {
+    console.error('Delete class error:', err.message);
+    res.status(500).json({ error: 'Failed to delete class' });
+  }
+};
+
 // Add a teacher to a class (multi-teacher support)
 exports.assignTeacher = (req, res) => {
   const classId = parseInt(req.params.id);
