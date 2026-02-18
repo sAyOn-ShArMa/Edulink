@@ -131,50 +131,92 @@ exports.createClass = (req, res) => {
 // Delete a class and all related data
 exports.deleteClass = (req, res) => {
   const classId = parseInt(req.params.id);
+
   const cls = db.prepare('SELECT id FROM classes WHERE id = ?').get(classId);
   if (!cls) {
     return res.status(404).json({ error: 'Class not found' });
   }
 
   try {
-    // Remove all related data before deleting the class
-    db.prepare('DELETE FROM class_enrollments WHERE class_id = ?').run(classId);
-    db.prepare('DELETE FROM class_teachers WHERE class_id = ?').run(classId);
-    db.prepare('DELETE FROM classes WHERE id = ?').run(classId);
+    // 1. Get all pdf_book ids for this class
+    const books = db.query(`SELECT id FROM pdf_books WHERE class_id = ${classId}`);
+
+    for (const book of books) {
+      // 2. Delete flashcards (deepest level)
+      const fsets = db.query(`SELECT id FROM flashcard_sets WHERE pdf_book_id = ${book.id}`);
+      for (const fs of fsets) {
+        db.runRaw(`DELETE FROM flashcards WHERE set_id = ${fs.id}`);
+      }
+      // 3. Delete flashcard sets
+      db.runRaw(`DELETE FROM flashcard_sets WHERE pdf_book_id = ${book.id}`);
+
+      // 4. Delete quiz questions and attempts
+      const qsets = db.query(`SELECT id FROM quiz_sets WHERE pdf_book_id = ${book.id}`);
+      for (const qs of qsets) {
+        db.runRaw(`DELETE FROM quiz_questions WHERE quiz_set_id = ${qs.id}`);
+        db.runRaw(`DELETE FROM quiz_attempts WHERE quiz_set_id = ${qs.id}`);
+      }
+      // 5. Delete quiz sets
+      db.runRaw(`DELETE FROM quiz_sets WHERE pdf_book_id = ${book.id}`);
+    }
+    // 6. Delete pdf books
+    db.runRaw(`DELETE FROM pdf_books WHERE class_id = ${classId}`);
+
+    // 7. Delete direct messages then conversations
+    const convos = db.query(`SELECT id FROM direct_conversations WHERE class_id = ${classId}`);
+    for (const c of convos) {
+      db.runRaw(`DELETE FROM direct_messages WHERE conversation_id = ${c.id}`);
+    }
+    db.runRaw(`DELETE FROM direct_conversations WHERE class_id = ${classId}`);
+
+    // 8. Delete enrollments and teacher assignments
+    db.runRaw(`DELETE FROM class_enrollments WHERE class_id = ${classId}`);
+    db.runRaw(`DELETE FROM class_teachers WHERE class_id = ${classId}`);
+
+    // 9. Delete the class itself
+    db.runRaw(`DELETE FROM classes WHERE id = ${classId}`);
+
+    // Save once at the end
+    db._save();
+
     res.json({ message: 'Class deleted' });
   } catch (err) {
-    console.error('Delete class error:', err.message);
-    res.status(500).json({ error: 'Failed to delete class' });
+    console.error('Delete class error:', err.message, err.stack);
+    res.status(500).json({ error: 'Failed to delete class', detail: err.message });
   }
 };
 
-// Add a teacher to a class (multi-teacher support)
+// Add a teacher to a class with a specific subject
 exports.assignTeacher = (req, res) => {
   const classId = parseInt(req.params.id);
-  const { teacher_id } = req.body;
+  const { teacher_id, subject } = req.body;
 
-  const cls = db.prepare('SELECT * FROM classes WHERE id = ?').get(classId);
-  if (!cls) {
-    return res.status(404).json({ error: 'Class not found' });
+  if (!teacher_id) {
+    return res.status(400).json({ error: 'teacher_id is required' });
   }
+  if (!subject || !subject.trim()) {
+    return res.status(400).json({ error: 'subject is required' });
+  }
+
+  const cls = db.prepare('SELECT id FROM classes WHERE id = ?').get(classId);
+  if (!cls) return res.status(404).json({ error: 'Class not found' });
 
   const teacher = db.prepare('SELECT id, role FROM users WHERE id = ?').get(parseInt(teacher_id));
-  if (!teacher || teacher.role !== 'teacher') {
-    return res.status(400).json({ error: 'Invalid teacher' });
-  }
+  if (!teacher || teacher.role !== 'teacher') return res.status(400).json({ error: 'Invalid teacher' });
 
-  // Check if already assigned
+  // If already assigned, update their subject
   const existing = db.prepare('SELECT id FROM class_teachers WHERE class_id = ? AND teacher_id = ?').get(classId, parseInt(teacher_id));
   if (existing) {
-    return res.status(409).json({ error: 'Teacher already assigned to this class' });
+    db.prepare('UPDATE class_teachers SET subject = ? WHERE class_id = ? AND teacher_id = ?').run(subject.trim(), classId, parseInt(teacher_id));
+  } else {
+    db.prepare('INSERT INTO class_teachers (class_id, teacher_id, subject) VALUES (?, ?, ?)').run(classId, parseInt(teacher_id), subject.trim());
   }
-
-  db.prepare('INSERT INTO class_teachers (class_id, teacher_id) VALUES (?, ?)').run(classId, parseInt(teacher_id));
 
   // Get updated teacher list
   const teachers = db.prepare(`
-    SELECT u.id, u.full_name FROM class_teachers ct
+    SELECT u.id, u.full_name, ct.subject FROM class_teachers ct
     JOIN users u ON u.id = ct.teacher_id WHERE ct.class_id = ?
+    ORDER BY ct.added_at
   `).all(classId);
 
   res.json({ message: 'Teacher added to class', teachers });
@@ -195,8 +237,9 @@ exports.removeTeacher = (req, res) => {
 
   // Get updated teacher list
   const teachers = db.prepare(`
-    SELECT u.id, u.full_name FROM class_teachers ct
+    SELECT u.id, u.full_name, ct.subject FROM class_teachers ct
     JOIN users u ON u.id = ct.teacher_id WHERE ct.class_id = ?
+    ORDER BY ct.added_at
   `).all(classId);
 
   res.json({ message: 'Teacher removed from class', teachers });
@@ -206,7 +249,7 @@ exports.removeTeacher = (req, res) => {
 exports.getClassTeachers = (req, res) => {
   const classId = parseInt(req.params.id);
   const teachers = db.prepare(`
-    SELECT u.id, u.full_name, u.email, ct.added_at
+    SELECT u.id, u.full_name, u.email, ct.subject, ct.added_at
     FROM class_teachers ct
     JOIN users u ON u.id = ct.teacher_id
     WHERE ct.class_id = ?
