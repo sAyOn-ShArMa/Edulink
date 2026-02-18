@@ -10,8 +10,6 @@
     "dev": "node index.js"
   },
   "dependencies": {
-    "al": "^0.0.3",
-    "all": "^0.0.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",

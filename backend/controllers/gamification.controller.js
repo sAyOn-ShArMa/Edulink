@@ -308,7 +308,7 @@ exports.quizComplete = (req, res) => {
     const completedQuizzes = db.prepare(
       'SELECT COUNT(*) as count FROM quiz_attempts WHERE student_id = ?'
     ).get(studentId);
-    checkAndAwardBadges(studentId, 'quizzes_completed', completedQuizzes.count);
+    const newBadges = checkAndAwardBadges(studentId, 'quizzes_completed', completedQuizzes.count);
 
     const updatedXp = db.prepare('SELECT total_xp, level FROM student_xp WHERE student_id = ?').get(studentId);
 
@@ -317,7 +317,7 @@ exports.quizComplete = (req, res) => {
       isPerfect,
       totalXp: updatedXp.total_xp,
       level: updatedXp.level,
-      newBadges: checkAndAwardBadges(studentId, 'quizzes_completed', completedQuizzes.count),
+      newBadges,
     });
   } catch (err) {
     console.error('Quiz complete error:', err);

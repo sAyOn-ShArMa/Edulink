@@ -37,27 +37,33 @@ module.exports = function (io) {
     socket.on('send_dm', ({ conversationId, content }) => {
       if (!content || !content.trim()) return;
 
-      // Verify user is a participant
-      const convo = db.prepare(
-        'SELECT * FROM direct_conversations WHERE id = ?'
-      ).get(parseInt(conversationId));
+      try {
+        // Verify user is a participant
+        const convo = db.prepare(
+          'SELECT * FROM direct_conversations WHERE id = ?'
+        ).get(parseInt(conversationId));
 
-      if (!convo || (convo.student_id !== socket.user.id && convo.teacher_id !== socket.user.id)) {
-        return; // Silently reject unauthorized messages
+        if (!convo || (convo.student_id !== socket.user.id && convo.teacher_id !== socket.user.id)) {
+          socket.emit('dm_error', { error: 'Access denied to this conversation' });
+          return;
+        }
+
+        const result = db.prepare(
+          'INSERT INTO direct_messages (conversation_id, sender_id, content) VALUES (?, ?, ?)'
+        ).run(conversationId, socket.user.id, content.trim());
+
+        const message = db.prepare(`
+          SELECT dm.*, u.full_name as sender_name, u.role as sender_role
+          FROM direct_messages dm
+          JOIN users u ON u.id = dm.sender_id
+          WHERE dm.id = ?
+        `).get(result.lastInsertRowid);
+
+        io.to(`dm_${conversationId}`).emit('new_dm', message);
+      } catch (err) {
+        console.error('send_dm error:', err);
+        socket.emit('dm_error', { error: 'Failed to send message' });
       }
-
-      const result = db.prepare(
-        'INSERT INTO direct_messages (conversation_id, sender_id, content) VALUES (?, ?, ?)'
-      ).run(conversationId, socket.user.id, content.trim());
-
-      const message = db.prepare(`
-        SELECT dm.*, u.full_name as sender_name, u.role as sender_role
-        FROM direct_messages dm
-        JOIN users u ON u.id = dm.sender_id
-        WHERE dm.id = ?
-      `).get(result.lastInsertRowid);
-
-      io.to(`dm_${conversationId}`).emit('new_dm', message);
     });
 
     socket.on('disconnect', () => {

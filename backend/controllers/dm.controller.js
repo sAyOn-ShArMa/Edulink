@@ -277,6 +277,9 @@ exports.aiAssist = async (req, res) => {
     res.json({ message, aiResponse });
   } catch (err) {
     console.error('AI assist error:', err);
+    if (err.message && err.message.includes('GROQ_API_KEY')) {
+      return res.status(503).json({ error: 'AI assistant is unavailable — GROQ_API_KEY is not configured on the server.' });
+    }
     res.status(500).json({ error: 'AI assistant failed to respond' });
   }
 };

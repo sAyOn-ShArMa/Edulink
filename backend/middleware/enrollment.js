@@ -15,9 +15,10 @@ function verifyEnrollment(req, res, next) {
   const enrollment = db.prepare(`
     SELECT ce.id FROM class_enrollments ce
     JOIN classes c ON c.id = ce.class_id
-    WHERE ce.student_id = ? AND c.teacher_id = ?
+    LEFT JOIN class_teachers ct ON ct.class_id = c.id
+    WHERE ce.student_id = ? AND (c.teacher_id = ? OR ct.teacher_id = ?)
     LIMIT 1
-  `).get(studentId, parseInt(teacherId));
+  `).get(studentId, parseInt(teacherId), parseInt(teacherId));
 
   if (!enrollment) {
     return res.status(403).json({
