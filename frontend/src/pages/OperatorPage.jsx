@@ -205,7 +205,7 @@ function ClassesTab({ onUpdate }) {
   const [classes, setClasses] = useState([]);
   const [teachers, setTeachers] = useState([]);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: '', subject: '', teacher_id: '' });
+  const [form, setForm] = useState({ name: '', subject: '', teacher_id: '', section: 'A' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [managingTeachers, setManagingTeachers] = useState(null);
@@ -223,8 +223,8 @@ function ClassesTab({ onUpdate }) {
     setError('');
     setLoading(true);
     try {
-      await createClass(form.name, form.subject, parseInt(form.teacher_id));
-      setForm({ name: '', subject: '', teacher_id: '' });
+      await createClass(form.name, form.subject, parseInt(form.teacher_id), form.section);
+      setForm({ name: '', subject: '', teacher_id: '', section: 'A' });
       setShowForm(false);
       fetchData();
       onUpdate();
@@ -285,16 +285,27 @@ function ClassesTab({ onUpdate }) {
       {showForm && (
         <form onSubmit={handleCreate} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4 mb-4">
           {error && <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-sm p-3 rounded-lg mb-3">{error}</div>}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Class Name</label>
               <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100" placeholder="e.g. Class 10-A" />
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100" placeholder="e.g. Class 10" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Subject</label>
               <input type="text" value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} required
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100" placeholder="e.g. Mathematics" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Section</label>
+              <div className="flex gap-1">
+                {['A', 'B', 'C', 'D'].map((s) => (
+                  <button key={s} type="button" onClick={() => setForm({ ...form, section: s })}
+                    className={`flex-1 py-2 rounded-lg text-sm font-bold border-2 transition-colors ${form.section === s ? 'border-primary-500 bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400' : 'border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400'}`}>
+                    {s}
+                  </button>
+                ))}
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Primary Teacher</label>
@@ -323,7 +334,12 @@ function ClassesTab({ onUpdate }) {
           <div className="col-span-full text-center py-12 text-gray-400">No classes yet. Create one above!</div>
         ) : classes.map((c) => (
           <div key={c.id} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
-            <h3 className="font-semibold text-gray-900 dark:text-white">{c.name}</h3>
+            <div className="flex items-start justify-between mb-1">
+              <h3 className="font-semibold text-gray-900 dark:text-white">{c.name}</h3>
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400 ml-2 flex-shrink-0">
+                §{c.section || 'A'}
+              </span>
+            </div>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{c.subject}</p>
             <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
               <div className="flex items-center justify-between">
