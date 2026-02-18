@@ -241,6 +241,7 @@ class Database {
     this._seedBadges();
     this._migrateFlashcardChapter();
     this._migrateClassTeachers();
+    this._migrateClassTeacherSubject();
   }
 
   // Seed default badge definitions
@@ -320,6 +321,23 @@ class Database {
       }
     } catch (err) {
       // Table might not have data yet
+    }
+  }
+
+  // Migrate class_teachers: add subject column if missing
+  _migrateClassTeacherSubject() {
+    try {
+      const result = this.db.exec("PRAGMA table_info(class_teachers)");
+      if (result.length > 0) {
+        const columns = result[0].values.map(row => row[1]);
+        if (!columns.includes('subject')) {
+          this.db.run("ALTER TABLE class_teachers ADD COLUMN subject TEXT DEFAULT NULL");
+          this._save();
+          console.log('Added subject column to class_teachers table');
+        }
+      }
+    } catch (err) {
+      console.error('class_teachers subject migration failed:', err.message);
     }
   }
 
@@ -452,6 +470,27 @@ class Database {
   exec(sql) {
     this.db.run(sql);
     this._save();
+  }
+
+  // Run a SELECT and return array of row objects (no save)
+  query(sql) {
+    try {
+      const result = this.db.exec(sql);
+      if (!result || result.length === 0) return [];
+      const { columns, values } = result[0];
+      return values.map(row => {
+        const obj = {};
+        columns.forEach((col, i) => { obj[col] = row[i]; });
+        return obj;
+      });
+    } catch (e) {
+      return [];
+    }
+  }
+
+  // Run a single DELETE/INSERT/UPDATE without saving (batch use)
+  runRaw(sql) {
+    this.db.run(sql);
   }
 
   // Transaction helper
