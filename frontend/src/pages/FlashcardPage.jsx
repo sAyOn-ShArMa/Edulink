@@ -15,6 +15,7 @@ export default function FlashcardPage() {
   const [flipped, setFlipped] = useState(false);
   const [score, setScore] = useState({ correct: 0, incorrect: 0 });
   const [finished, setFinished] = useState(false);
+  const [finalScore, setFinalScore] = useState(null);
   const [xpResult, setXpResult] = useState(null);
 
   // Course -> Unit -> Chapter selector state
@@ -54,6 +55,7 @@ export default function FlashcardPage() {
   };
 
   const nextCard = (correct) => {
+    if (!flipped) return; // must flip card before marking correct/wrong
     const newScore = {
       correct: score.correct + (correct ? 1 : 0),
       incorrect: score.incorrect + (correct ? 0 : 1),
@@ -64,7 +66,8 @@ export default function FlashcardPage() {
       if (currentIndex < cards.length - 1) {
         setCurrentIndex(currentIndex + 1);
       } else {
-        // Last card answered — show completion screen and award XP
+        // Last card answered — capture finalScore before state batching
+        setFinalScore(newScore);
         setFinished(true);
         if (user?.role === 'student' && activeSet) {
           completeFlashcardSet(activeSet.id, newScore.correct, cards.length)
@@ -79,6 +82,7 @@ export default function FlashcardPage() {
     setCurrentIndex(0);
     setFlipped(false);
     setScore({ correct: 0, incorrect: 0 });
+    setFinalScore(null);
     setFinished(false);
     setXpResult(null);
   };
@@ -94,6 +98,7 @@ export default function FlashcardPage() {
     setCurrentIndex(0);
     setFlipped(false);
     setScore({ correct: 0, incorrect: 0 });
+    setFinalScore(null);
     setFinished(false);
     setXpResult(null);
   };
@@ -285,16 +290,16 @@ export default function FlashcardPage() {
                 <p className="text-gray-500 dark:text-gray-400 mb-6">You reviewed all {cards.length} cards</p>
                 <div className="flex justify-center gap-6 mb-6">
                   <div className="text-center">
-                    <p className="text-2xl font-bold text-green-600 dark:text-green-400">{score.correct}</p>
+                    <p className="text-2xl font-bold text-green-600 dark:text-green-400">{finalScore?.correct ?? score.correct}</p>
                     <p className="text-xs text-gray-400">Correct</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-2xl font-bold text-red-500 dark:text-red-400">{score.incorrect}</p>
+                    <p className="text-2xl font-bold text-red-500 dark:text-red-400">{finalScore?.incorrect ?? score.incorrect}</p>
                     <p className="text-xs text-gray-400">Wrong</p>
                   </div>
                   <div className="text-center">
                     <p className="text-2xl font-bold text-primary-600 dark:text-primary-400">
-                      {cards.length > 0 ? Math.round((score.correct / cards.length) * 100) : 0}%
+                      {cards.length > 0 ? Math.round(((finalScore?.correct ?? score.correct) / cards.length) * 100) : 0}%
                     </p>
                     <p className="text-xs text-gray-400">Accuracy</p>
                   </div>
@@ -346,19 +351,22 @@ export default function FlashcardPage() {
 
               {/* Controls */}
               <div className="flex justify-center gap-2 sm:gap-3">
-                <button onClick={() => nextCard(false)}
-                  className="flex-1 sm:flex-none px-4 sm:px-6 py-2.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-xl font-medium text-sm hover:bg-red-200 dark:hover:bg-red-900/50">
+                <button onClick={() => nextCard(false)} disabled={!flipped}
+                  className="flex-1 sm:flex-none px-4 sm:px-6 py-2.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-xl font-medium text-sm hover:bg-red-200 dark:hover:bg-red-900/50 disabled:opacity-30 disabled:cursor-not-allowed">
                   Wrong
                 </button>
                 <button onClick={shuffle}
                   className="flex-1 sm:flex-none px-4 sm:px-6 py-2.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl font-medium text-sm hover:bg-gray-200 dark:hover:bg-gray-700">
                   Shuffle
                 </button>
-                <button onClick={() => nextCard(true)}
-                  className="flex-1 sm:flex-none px-4 sm:px-6 py-2.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-xl font-medium text-sm hover:bg-green-200 dark:hover:bg-green-900/50">
+                <button onClick={() => nextCard(true)} disabled={!flipped}
+                  className="flex-1 sm:flex-none px-4 sm:px-6 py-2.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-xl font-medium text-sm hover:bg-green-200 dark:hover:bg-green-900/50 disabled:opacity-30 disabled:cursor-not-allowed">
                   Correct
                 </button>
               </div>
+              {!flipped && (
+                <p className="text-center text-xs text-gray-400 dark:text-gray-500 mt-3">Flip the card before marking correct or wrong</p>
+              )}
 
               {/* Progress bar */}
               <div className="mt-6 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
