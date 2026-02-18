@@ -212,6 +212,8 @@ function ClassesTab({ onUpdate }) {
   const [classTeachers, setClassTeachers] = useState([]);
   const [addTeacherForm, setAddTeacherForm] = useState({ teacher_id: '', subject: '' });
   const [addTeacherError, setAddTeacherError] = useState('');
+  const [editingSubject, setEditingSubject] = useState(null); // teacherId being edited
+  const [editSubjectValue, setEditSubjectValue] = useState('');
 
   const fetchData = () => {
     getAllClasses().then((res) => setClasses(res.data.classes)).catch(() => {});
@@ -286,9 +288,23 @@ function ClassesTab({ onUpdate }) {
     try {
       const res = await removeTeacher(classId, teacherId);
       setClassTeachers(res.data.teachers);
+      setEditingSubject(null);
       fetchData();
     } catch (err) {
       alert(err.response?.data?.error || 'Failed to remove teacher');
+    }
+  };
+
+  const handleUpdateSubject = async (classId, teacherId) => {
+    if (!editSubjectValue.trim()) return;
+    try {
+      const res = await assignTeacher(classId, teacherId, editSubjectValue.trim());
+      setClassTeachers(res.data.teachers);
+      setEditingSubject(null);
+      setEditSubjectValue('');
+      fetchData();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to update subject');
     }
   };
 
@@ -382,15 +398,48 @@ function ClassesTab({ onUpdate }) {
                     {classTeachers.length === 0 ? (
                       <p className="text-xs text-gray-400 italic">No teachers assigned yet</p>
                     ) : classTeachers.map((t) => (
-                      <div key={t.id} className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 rounded-lg px-3 py-2">
-                        <div>
+                      <div key={t.id} className="bg-gray-50 dark:bg-gray-800 rounded-lg px-3 py-2">
+                        <div className="flex items-center justify-between">
                           <p className="text-sm font-medium text-gray-900 dark:text-white">{t.full_name}</p>
-                          <p className="text-xs text-primary-600 dark:text-primary-400">{t.subject || 'No subject set'}</p>
+                          <div className="flex items-center gap-2 ml-2 flex-shrink-0">
+                            <button
+                              onClick={() => {
+                                if (editingSubject === t.id) { setEditingSubject(null); setEditSubjectValue(''); }
+                                else { setEditingSubject(t.id); setEditSubjectValue(t.subject || ''); }
+                              }}
+                              className="text-xs text-primary-500 hover:text-primary-700">
+                              {editingSubject === t.id ? 'Cancel' : 'Edit'}
+                            </button>
+                            <button onClick={() => handleRemoveTeacher(c.id, t.id)}
+                              className="text-xs text-red-500 hover:text-red-700">
+                              Remove
+                            </button>
+                          </div>
                         </div>
-                        <button onClick={() => handleRemoveTeacher(c.id, t.id)}
-                          className="text-xs text-red-500 hover:text-red-700 ml-2 flex-shrink-0">
-                          Remove
-                        </button>
+                        {editingSubject === t.id ? (
+                          <div className="flex gap-1 mt-1.5">
+                            <input
+                              autoFocus
+                              type="text"
+                              value={editSubjectValue}
+                              onChange={(e) => setEditSubjectValue(e.target.value)}
+                              onKeyDown={(e) => e.key === 'Enter' && handleUpdateSubject(c.id, t.id)}
+                              placeholder="Enter subject..."
+                              className="flex-1 px-2 py-1 border border-primary-400 rounded text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 outline-none focus:ring-1 focus:ring-primary-500"
+                            />
+                            <button
+                              onClick={() => handleUpdateSubject(c.id, t.id)}
+                              className="px-2 py-1 bg-primary-600 text-white rounded text-xs hover:bg-primary-700">
+                              Save
+                            </button>
+                          </div>
+                        ) : (
+                          <p
+                            onClick={() => { setEditingSubject(t.id); setEditSubjectValue(t.subject || ''); }}
+                            className={`text-xs mt-0.5 cursor-pointer ${t.subject ? 'text-primary-600 dark:text-primary-400' : 'text-amber-500 dark:text-amber-400 italic'}`}>
+                            {t.subject || 'No subject set — click to add'}
+                          </p>
+                        )}
                       </div>
                     ))}
                   </div>
