@@ -354,16 +354,17 @@ class Database {
     }
   }
 
-  // Seed a default operator account if none exists
+  // Seed a default operator account if none exists, or ensure password is correct
   _seedOperator() {
     try {
-      const stmt = this.db.prepare('SELECT id FROM users WHERE role = ?');
-      stmt.bind(['operator']);
-      const hasOperator = stmt.step();
+      const passwordHash = bcrypt.hashSync('admin123', 10);
+
+      const stmt = this.db.prepare('SELECT id FROM users WHERE email = ?');
+      stmt.bind(['admin@edulink.com']);
+      const exists = stmt.step();
       stmt.free();
 
-      if (!hasOperator) {
-        const passwordHash = bcrypt.hashSync('admin123', 10);
+      if (!exists) {
         const insertStmt = this.db.prepare(
           'INSERT INTO users (email, password_hash, full_name, role) VALUES (?, ?, ?, ?)'
         );
@@ -372,6 +373,16 @@ class Database {
         insertStmt.free();
         this._save();
         console.log('Default operator account created (admin@edulink.com / admin123)');
+      } else {
+        // Always ensure the password hash is up to date
+        const updateStmt = this.db.prepare(
+          'UPDATE users SET password_hash = ? WHERE email = ?'
+        );
+        updateStmt.bind([passwordHash, 'admin@edulink.com']);
+        updateStmt.step();
+        updateStmt.free();
+        this._save();
+        console.log('Default operator account password verified (admin@edulink.com / admin123)');
       }
     } catch (err) {
       console.error('Seed operator failed:', err.message);
