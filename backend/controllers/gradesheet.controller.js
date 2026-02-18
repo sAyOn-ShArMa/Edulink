@@ -11,8 +11,13 @@ exports.upload = async (req, res) => {
     let extractedData = null;
 
     if (req.file.mimetype === 'application/pdf') {
-      const rawText = await extractText(req.file.path);
-      extractedData = await parseGradesheetText(rawText);
+      try {
+        const rawText = await extractText(req.file.path);
+        extractedData = await parseGradesheetText(rawText);
+      } catch (aiErr) {
+        console.warn('Gradesheet AI parsing skipped:', aiErr.message);
+        // Continue without AI extraction — file is still saved
+      }
     }
 
     const result = db.prepare(
@@ -74,6 +79,9 @@ exports.analyze = async (req, res) => {
     res.status(201).json({ schedule });
   } catch (err) {
     console.error('Gradesheet analysis error:', err);
+    if (err.message && err.message.includes('GROQ_API_KEY')) {
+      return res.status(503).json({ error: 'AI analysis is unavailable — GROQ_API_KEY is not configured on the server.' });
+    }
     res.status(500).json({ error: 'Failed to analyze gradesheet' });
   }
 };
