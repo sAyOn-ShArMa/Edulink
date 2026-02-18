@@ -208,8 +208,10 @@ function ClassesTab({ onUpdate }) {
   const [form, setForm] = useState({ name: '', subject: '', teacher_id: '', section: 'A' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [managingTeachers, setManagingTeachers] = useState(null);
+  const [managingTeachers, setManagingTeachers] = useState(null); // classId being managed
   const [classTeachers, setClassTeachers] = useState([]);
+  const [addTeacherForm, setAddTeacherForm] = useState({ teacher_id: '', subject: '' });
+  const [addTeacherError, setAddTeacherError] = useState('');
 
   const fetchData = () => {
     getAllClasses().then((res) => setClasses(res.data.classes)).catch(() => {});
@@ -236,13 +238,14 @@ function ClassesTab({ onUpdate }) {
   };
 
   const handleDeleteClass = async (id, name) => {
-    if (!confirm(`Delete class "${name}"? This will remove all enrollments and teacher assignments.`)) return;
+    if (!confirm(`Delete class "${name}"? This will remove all related data.`)) return;
     try {
       await deleteClass(id);
       fetchData();
       onUpdate();
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to delete class');
+      const detail = err.response?.data?.detail ? `\n${err.response.data.detail}` : '';
+      alert((err.response?.data?.error || 'Failed to delete class') + detail);
     }
   };
 
@@ -250,9 +253,13 @@ function ClassesTab({ onUpdate }) {
     if (managingTeachers === classId) {
       setManagingTeachers(null);
       setClassTeachers([]);
+      setAddTeacherForm({ teacher_id: '', subject: '' });
+      setAddTeacherError('');
       return;
     }
     setManagingTeachers(classId);
+    setAddTeacherForm({ teacher_id: '', subject: '' });
+    setAddTeacherError('');
     try {
       const res = await getClassTeachers(classId);
       setClassTeachers(res.data.teachers);
@@ -261,13 +268,17 @@ function ClassesTab({ onUpdate }) {
     }
   };
 
-  const handleAddTeacher = async (classId, teacherId) => {
+  const handleAddTeacher = async (classId) => {
+    setAddTeacherError('');
+    if (!addTeacherForm.teacher_id) return setAddTeacherError('Select a teacher');
+    if (!addTeacherForm.subject.trim()) return setAddTeacherError('Enter the subject they teach');
     try {
-      const res = await assignTeacher(classId, parseInt(teacherId));
+      const res = await assignTeacher(classId, parseInt(addTeacherForm.teacher_id), addTeacherForm.subject.trim());
       setClassTeachers(res.data.teachers);
+      setAddTeacherForm({ teacher_id: '', subject: '' });
       fetchData();
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to add teacher');
+      setAddTeacherError(err.response?.data?.error || 'Failed to add teacher');
     }
   };
 
@@ -280,9 +291,6 @@ function ClassesTab({ onUpdate }) {
       alert(err.response?.data?.error || 'Failed to remove teacher');
     }
   };
-
-  const assignedTeacherIds = classTeachers.map(t => t.id);
-  const availableTeachers = teachers.filter(t => !assignedTeacherIds.includes(t.id));
 
   return (
     <div>
@@ -303,7 +311,7 @@ function ClassesTab({ onUpdate }) {
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100" placeholder="e.g. Class 10" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Subject</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Default Subject</label>
               <input type="text" value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} required
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100" placeholder="e.g. Mathematics" />
             </div>
@@ -354,13 +362,11 @@ function ClassesTab({ onUpdate }) {
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{c.subject}</p>
             <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-400">
-                  {c.teacher_name} &middot; {c.student_count} students
-                </span>
+                <span className="text-xs text-gray-400">{c.student_count} students</span>
                 <div className="flex items-center gap-2">
                   <button onClick={() => handleManageTeachers(c.id)}
-                    className="text-xs text-primary-600 dark:text-primary-400 hover:underline">
-                    {managingTeachers === c.id ? 'Close' : 'Teachers'}
+                    className="text-xs text-primary-600 dark:text-primary-400 hover:underline font-medium">
+                    {managingTeachers === c.id ? 'Close' : `Teachers (${c.teachers?.length || 0})`}
                   </button>
                   <button onClick={() => handleDeleteClass(c.id, c.name)}
                     className="text-xs text-red-500 hover:text-red-700 px-2 py-1 border border-red-200 dark:border-red-800 rounded-lg">
@@ -368,31 +374,53 @@ function ClassesTab({ onUpdate }) {
                   </button>
                 </div>
               </div>
+
               {managingTeachers === c.id && (
-                <div className="mt-3 space-y-2">
-                  {/* Current teachers */}
+                <div className="mt-3 space-y-3">
+                  {/* Current subject-teachers list */}
                   <div className="space-y-1">
-                    {classTeachers.map((t) => (
+                    {classTeachers.length === 0 ? (
+                      <p className="text-xs text-gray-400 italic">No teachers assigned yet</p>
+                    ) : classTeachers.map((t) => (
                       <div key={t.id} className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 rounded-lg px-3 py-2">
-                        <span className="text-sm text-gray-900 dark:text-white">{t.full_name}</span>
+                        <div>
+                          <p className="text-sm font-medium text-gray-900 dark:text-white">{t.full_name}</p>
+                          <p className="text-xs text-primary-600 dark:text-primary-400">{t.subject || 'No subject set'}</p>
+                        </div>
                         <button onClick={() => handleRemoveTeacher(c.id, t.id)}
-                          className="text-xs text-red-500 hover:text-red-700">
+                          className="text-xs text-red-500 hover:text-red-700 ml-2 flex-shrink-0">
                           Remove
                         </button>
                       </div>
                     ))}
-                    {classTeachers.length === 0 && (
-                      <p className="text-xs text-gray-400 py-1">No teachers assigned</p>
-                    )}
                   </div>
-                  {/* Add teacher */}
-                  {availableTeachers.length > 0 && (
-                    <select onChange={(e) => e.target.value && handleAddTeacher(c.id, e.target.value)} defaultValue=""
-                      className="w-full px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">
-                      <option value="">+ Add teacher...</option>
-                      {availableTeachers.map((t) => <option key={t.id} value={t.id}>{t.full_name}</option>)}
+
+                  {/* Add teacher + subject form */}
+                  <div className="border border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-3 space-y-2">
+                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">Add Subject Teacher</p>
+                    {addTeacherError && (
+                      <p className="text-xs text-red-500">{addTeacherError}</p>
+                    )}
+                    <select
+                      value={addTeacherForm.teacher_id}
+                      onChange={(e) => setAddTeacherForm({ ...addTeacherForm, teacher_id: e.target.value })}
+                      className="w-full px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none">
+                      <option value="">Select teacher...</option>
+                      {teachers.map((t) => <option key={t.id} value={t.id}>{t.full_name}</option>)}
                     </select>
-                  )}
+                    <input
+                      type="text"
+                      placeholder="Subject they teach (e.g. Physics)"
+                      value={addTeacherForm.subject}
+                      onChange={(e) => setAddTeacherForm({ ...addTeacherForm, subject: e.target.value })}
+                      className="w-full px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:ring-1 focus:ring-primary-500"
+                    />
+                    <button
+                      onClick={() => handleAddTeacher(c.id)}
+                      className="w-full py-1.5 bg-primary-600 text-white rounded-lg text-xs font-medium hover:bg-primary-700">
+                      + Assign Teacher
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
