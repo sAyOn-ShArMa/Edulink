@@ -2,10 +2,6 @@
 
 A full-stack educational platform that connects students, teachers, and operators with integrated course management, AI-powered study tools, real-time messaging, and administrative features.
 
-## 🌐 Live Website
-
-**[https://edulink-1xnv.onrender.com](https://edulink-1xnv.onrender.com)**
-
 ## Tech Stack
 
 | Layer | Technologies |
