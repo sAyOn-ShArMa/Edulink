@@ -112,18 +112,15 @@ export default function ClassesPage() {
                       : 'border-gray-200 dark:border-gray-700'
                   } p-5 shadow-sm`}
                 >
-                  {/* Subject name */}
+                  {/* Class name */}
                   <div className="flex items-start justify-between mb-3">
-                    <h3 className="font-bold text-gray-900 dark:text-white text-base">{subject.subject}</h3>
+                    <h3 className="font-bold text-gray-900 dark:text-white text-base">{subject.className}</h3>
                     {subject.enrolled && (
                       <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${colors.text} ${colors.bg}`}>
                         Enrolled
                       </span>
                     )}
                   </div>
-
-                  {/* Class name */}
-                  <p className="text-xs text-gray-400 mb-3">{subject.className}</p>
 
                   {/* Teacher(s) */}
                   <div className="border-t border-gray-100 dark:border-gray-800 pt-3 space-y-1.5">

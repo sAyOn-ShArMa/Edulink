@@ -89,8 +89,8 @@ exports.deleteUser = (req, res) => {
 // Create a class with an assigned teacher
 exports.createClass = (req, res) => {
   const { name, subject, teacher_id, section } = req.body;
-  if (!name || !subject || !teacher_id) {
-    return res.status(400).json({ error: 'Name, subject, and teacher_id are required' });
+  if (!name || !teacher_id) {
+    return res.status(400).json({ error: 'Name and teacher_id are required' });
   }
 
   const validSections = ['A', 'B', 'C', 'D'];
@@ -133,8 +133,8 @@ exports.updateClass = (req, res) => {
   const classId = parseInt(req.params.id);
   const { name, subject, section } = req.body;
 
-  if (!name && !subject && !section) {
-    return res.status(400).json({ error: 'At least one field (name, subject, section) is required' });
+  if (!name && !section) {
+    return res.status(400).json({ error: 'At least one field (name, section) is required' });
   }
 
   const cls = db.prepare('SELECT * FROM classes WHERE id = ?').get(classId);

@@ -205,7 +205,7 @@ function ClassesTab({ onUpdate }) {
   const [classes, setClasses] = useState([]);
   const [teachers, setTeachers] = useState([]);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: '', subject: '', teacher_id: '', section: 'A' });
+  const [form, setForm] = useState({ name: '', teacher_id: '', section: 'A' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [managingTeachers, setManagingTeachers] = useState(null); // classId being managed
@@ -215,7 +215,7 @@ function ClassesTab({ onUpdate }) {
   const [editingSubject, setEditingSubject] = useState(null); // teacherId being edited
   const [editSubjectValue, setEditSubjectValue] = useState('');
   const [editingClass, setEditingClass] = useState(null); // classId being edited
-  const [editClassForm, setEditClassForm] = useState({ name: '', subject: '', section: 'A' });
+  const [editClassForm, setEditClassForm] = useState({ name: '', section: 'A' });
   const [editClassError, setEditClassError] = useState('');
 
   const fetchData = () => {
@@ -230,8 +230,8 @@ function ClassesTab({ onUpdate }) {
     setError('');
     setLoading(true);
     try {
-      await createClass(form.name, form.subject, parseInt(form.teacher_id), form.section);
-      setForm({ name: '', subject: '', teacher_id: '', section: 'A' });
+      await createClass(form.name, '', parseInt(form.teacher_id), form.section);
+      setForm({ name: '', teacher_id: '', section: 'A' });
       setShowForm(false);
       fetchData();
       onUpdate();
@@ -313,14 +313,14 @@ function ClassesTab({ onUpdate }) {
 
   const handleStartEditClass = (c) => {
     setEditingClass(c.id);
-    setEditClassForm({ name: c.name, subject: c.subject, section: c.section || 'A' });
+    setEditClassForm({ name: c.name, section: c.section || 'A' });
     setEditClassError('');
   };
 
   const handleSaveClass = async (classId) => {
     setEditClassError('');
-    if (!editClassForm.name.trim() || !editClassForm.subject.trim()) {
-      return setEditClassError('Name and subject are required');
+    if (!editClassForm.name.trim()) {
+      return setEditClassError('Class name is required');
     }
     try {
       await updateClass(classId, editClassForm);
@@ -343,16 +343,11 @@ function ClassesTab({ onUpdate }) {
       {showForm && (
         <form onSubmit={handleCreate} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4 mb-4">
           {error && <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-sm p-3 rounded-lg mb-3">{error}</div>}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Class Name</label>
               <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100" placeholder="e.g. Class 10" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Default Subject</label>
-              <input type="text" value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} required
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100" placeholder="e.g. Mathematics" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Section</label>
@@ -407,15 +402,6 @@ function ClassesTab({ onUpdate }) {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Default Subject</label>
-                  <input
-                    type="text"
-                    value={editClassForm.subject}
-                    onChange={(e) => setEditClassForm({ ...editClassForm, subject: e.target.value })}
-                    className="w-full px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:ring-2 focus:ring-primary-500"
-                  />
-                </div>
-                <div>
                   <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Section</label>
                   <div className="flex gap-1">
                     {['A', 'B', 'C', 'D'].map((s) => (
@@ -445,7 +431,6 @@ function ClassesTab({ onUpdate }) {
                     §{c.section || 'A'}
                   </span>
                 </div>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{c.subject}</p>
               </>
             )}
             {editingClass !== c.id && (
