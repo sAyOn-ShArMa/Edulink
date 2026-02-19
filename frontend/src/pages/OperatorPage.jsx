@@ -230,7 +230,7 @@ function ClassesTab({ onUpdate }) {
     setError('');
     setLoading(true);
     try {
-      await createClass(form.name, '', parseInt(form.teacher_id), form.section);
+      await createClass(form.name, parseInt(form.teacher_id), form.section);
       setForm({ name: '', teacher_id: '', section: 'A' });
       setShowForm(false);
       fetchData();

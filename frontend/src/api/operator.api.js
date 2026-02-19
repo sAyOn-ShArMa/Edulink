@@ -11,8 +11,8 @@ export const deleteUser = (id) =>
   api.delete(`/operator/users/${id}`);
 
 // Class management
-export const createClass = (name, subject, teacher_id, section) =>
-  api.post('/operator/classes', { name, subject, teacher_id, section });
+export const createClass = (name, teacher_id, section) =>
+  api.post('/operator/classes', { name, teacher_id, section });
 
 export const updateClass = (classId, data) =>
   api.put(`/operator/classes/${classId}`, data);
