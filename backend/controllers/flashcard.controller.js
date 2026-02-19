@@ -34,11 +34,6 @@ exports.generate = async (req, res) => {
       }
     }
 
-    // Require at least a unit selection — full book scope is not allowed
-    if (scope === 'full_book') {
-      return res.status(400).json({ error: 'Please select a unit or chapter. Full book generation is not supported.' });
-    }
-
     let title;
     let cards;
 
