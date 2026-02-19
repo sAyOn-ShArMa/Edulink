@@ -19,13 +19,13 @@ export default function ClassesPage() {
     getSections()
       .then((res) => {
         setSections(res.data.sections);
-        // Default to the student's own section, or first section with subjects
+        // Students default to their own section; teachers/operators to first section with subjects
         const mine = res.data.sections.find(s => s.isMySection);
         const first = res.data.sections.find(s => s.subjects.length > 0);
         setActiveSection((mine || first)?.section || 'A');
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [user]);
 
   if (loading) {
     return (
@@ -35,8 +35,27 @@ export default function ClassesPage() {
     );
   }
 
+  const isStudent = user?.role === 'student';
+
+  // Students only see the section(s) they're enrolled in; others see all
+  const visibleSections = isStudent
+    ? sections.filter(s => s.isMySection)
+    : sections;
+
   const activeData = sections.find(s => s.section === activeSection);
   const colors = SECTION_COLORS[activeSection] || SECTION_COLORS.A;
+
+  // Students with no enrolled section
+  if (isStudent && visibleSections.length === 0 && !loading) {
+    return (
+      <div className="p-4 sm:p-6">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-6">Classes</h1>
+        <div className="text-center py-16 text-gray-400">
+          You are not enrolled in any section yet. Contact your operator.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 sm:p-6">
@@ -44,37 +63,26 @@ export default function ClassesPage() {
 
       {/* Section Tabs */}
       <div className="flex gap-2 mb-6 flex-wrap">
-        {['A', 'B', 'C', 'D'].map((sec) => {
+        {(isStudent ? visibleSections.map(s => s.section) : ['A', 'B', 'C', 'D']).map((sec) => {
           const sData = sections.find(s => s.section === sec);
           const c = SECTION_COLORS[sec];
           const isActive = activeSection === sec;
-          const isMySection = sData?.isMySection;
           const hasSubjects = (sData?.subjects?.length || 0) > 0;
 
           return (
             <button
               key={sec}
               onClick={() => setActiveSection(sec)}
-              className={`relative px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+              className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
                 isActive
                   ? `${c.header} text-white shadow-md`
                   : 'bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600'
-              } ${!hasSubjects ? 'opacity-50' : ''}`}
+              } ${!isStudent && !hasSubjects ? 'opacity-50' : ''}`}
             >
               Section {sec}
-              {isMySection && (
-                <span className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-950" title="Your section" />
-              )}
             </button>
           );
         })}
-
-        {user?.role === 'student' && (
-          <span className="flex items-center gap-1.5 text-xs text-gray-400 ml-2">
-            <span className="w-2.5 h-2.5 bg-green-500 rounded-full inline-block" />
-            Your section
-          </span>
-        )}
       </div>
 
       {/* Active Section Content */}
@@ -152,9 +160,9 @@ export default function ClassesPage() {
         </div>
       )}
 
-      {sections.every(s => s.subjects.length === 0) && (
+      {!isStudent && sections.every(s => s.subjects.length === 0) && (
         <div className="text-center py-16 text-gray-400">
-          No classes have been created yet. Contact your operator.
+          No classes have been created yet.
         </div>
       )}
     </div>
