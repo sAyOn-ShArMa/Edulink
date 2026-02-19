@@ -15,6 +15,7 @@ router.delete('/users/:id', op.deleteUser);
 
 // Class management
 router.post('/classes', op.createClass);
+router.put('/classes/:id', op.updateClass);
 router.delete('/classes/:id', op.deleteClass);
 router.put('/classes/:id/teacher', op.assignTeacher);
 router.delete('/classes/:id/teacher/:teacherId', op.removeTeacher);

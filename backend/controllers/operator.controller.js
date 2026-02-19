@@ -128,6 +128,44 @@ exports.createClass = (req, res) => {
   }
 };
 
+// Update a class (name, subject, section)
+exports.updateClass = (req, res) => {
+  const classId = parseInt(req.params.id);
+  const { name, subject, section } = req.body;
+
+  if (!name && !subject && !section) {
+    return res.status(400).json({ error: 'At least one field (name, subject, section) is required' });
+  }
+
+  const cls = db.prepare('SELECT * FROM classes WHERE id = ?').get(classId);
+  if (!cls) {
+    return res.status(404).json({ error: 'Class not found' });
+  }
+
+  const validSections = ['A', 'B', 'C', 'D'];
+  const resolvedSection = section && validSections.includes(section) ? section : cls.section;
+  const resolvedName = name && name.trim() ? name.trim() : cls.name;
+  const resolvedSubject = subject && subject.trim() ? subject.trim() : cls.subject;
+
+  try {
+    db.prepare('UPDATE classes SET name = ?, subject = ?, section = ? WHERE id = ?')
+      .run(resolvedName, resolvedSubject, resolvedSection, classId);
+
+    const updated = db.prepare('SELECT * FROM classes WHERE id = ?').get(classId);
+    const count = db.prepare('SELECT COUNT(*) as count FROM class_enrollments WHERE class_id = ?').get(classId);
+    const teachers = db.prepare(`
+      SELECT u.id, u.full_name, ct.subject FROM class_teachers ct
+      JOIN users u ON u.id = ct.teacher_id WHERE ct.class_id = ?
+      ORDER BY ct.added_at
+    `).all(classId);
+
+    res.json({ class: { ...updated, student_count: count?.count || 0, teachers } });
+  } catch (err) {
+    console.error('Update class error:', err.message);
+    res.status(500).json({ error: 'Failed to update class' });
+  }
+};
+
 // Delete a class and all related data
 exports.deleteClass = (req, res) => {
   const classId = parseInt(req.params.id);

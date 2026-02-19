@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   createUser, listUsers, deleteUser,
-  createClass, deleteClass, assignTeacher, removeTeacher, getClassTeachers,
+  createClass, updateClass, deleteClass, assignTeacher, removeTeacher, getClassTeachers,
   enrollStudent, unenrollStudent, getClassStudents,
   getStats, downloadPdf, uploadPdf,
 } from '../api/operator.api';
@@ -214,6 +214,9 @@ function ClassesTab({ onUpdate }) {
   const [addTeacherError, setAddTeacherError] = useState('');
   const [editingSubject, setEditingSubject] = useState(null); // teacherId being edited
   const [editSubjectValue, setEditSubjectValue] = useState('');
+  const [editingClass, setEditingClass] = useState(null); // classId being edited
+  const [editClassForm, setEditClassForm] = useState({ name: '', subject: '', section: 'A' });
+  const [editClassError, setEditClassError] = useState('');
 
   const fetchData = () => {
     getAllClasses().then((res) => setClasses(res.data.classes)).catch(() => {});
@@ -308,6 +311,26 @@ function ClassesTab({ onUpdate }) {
     }
   };
 
+  const handleStartEditClass = (c) => {
+    setEditingClass(c.id);
+    setEditClassForm({ name: c.name, subject: c.subject, section: c.section || 'A' });
+    setEditClassError('');
+  };
+
+  const handleSaveClass = async (classId) => {
+    setEditClassError('');
+    if (!editClassForm.name.trim() || !editClassForm.subject.trim()) {
+      return setEditClassError('Name and subject are required');
+    }
+    try {
+      await updateClass(classId, editClassForm);
+      setEditingClass(null);
+      fetchData();
+    } catch (err) {
+      setEditClassError(err.response?.data?.error || 'Failed to update class');
+    }
+  };
+
   return (
     <div>
       <div className="flex items-center gap-3 mb-4">
@@ -369,13 +392,63 @@ function ClassesTab({ onUpdate }) {
           <div className="col-span-full text-center py-12 text-gray-400">No classes yet. Create one above!</div>
         ) : classes.map((c) => (
           <div key={c.id} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
-            <div className="flex items-start justify-between mb-1">
-              <h3 className="font-semibold text-gray-900 dark:text-white">{c.name}</h3>
-              <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400 ml-2 flex-shrink-0">
-                §{c.section || 'A'}
-              </span>
-            </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{c.subject}</p>
+            {editingClass === c.id ? (
+              <div className="space-y-2">
+                {editClassError && (
+                  <p className="text-xs text-red-500">{editClassError}</p>
+                )}
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Class Name</label>
+                  <input
+                    type="text"
+                    value={editClassForm.name}
+                    onChange={(e) => setEditClassForm({ ...editClassForm, name: e.target.value })}
+                    className="w-full px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Default Subject</label>
+                  <input
+                    type="text"
+                    value={editClassForm.subject}
+                    onChange={(e) => setEditClassForm({ ...editClassForm, subject: e.target.value })}
+                    className="w-full px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Section</label>
+                  <div className="flex gap-1">
+                    {['A', 'B', 'C', 'D'].map((s) => (
+                      <button key={s} type="button" onClick={() => setEditClassForm({ ...editClassForm, section: s })}
+                        className={`flex-1 py-1.5 rounded-lg text-xs font-bold border-2 transition-colors ${editClassForm.section === s ? 'border-primary-500 bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400' : 'border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400'}`}>
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex gap-2 pt-1">
+                  <button onClick={() => handleSaveClass(c.id)}
+                    className="flex-1 py-1.5 bg-primary-600 text-white rounded-lg text-xs font-medium hover:bg-primary-700">
+                    Save
+                  </button>
+                  <button onClick={() => setEditingClass(null)}
+                    className="flex-1 py-1.5 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 rounded-lg text-xs hover:bg-gray-50 dark:hover:bg-gray-800">
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-start justify-between mb-1">
+                  <h3 className="font-semibold text-gray-900 dark:text-white">{c.name}</h3>
+                  <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400 ml-2 flex-shrink-0">
+                    §{c.section || 'A'}
+                  </span>
+                </div>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{c.subject}</p>
+              </>
+            )}
+            {editingClass !== c.id && (
             <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-gray-400">{c.student_count} students</span>
@@ -383,6 +456,10 @@ function ClassesTab({ onUpdate }) {
                   <button onClick={() => handleManageTeachers(c.id)}
                     className="text-xs text-primary-600 dark:text-primary-400 hover:underline font-medium">
                     {managingTeachers === c.id ? 'Close' : `Teachers (${c.teachers?.length || 0})`}
+                  </button>
+                  <button onClick={() => handleStartEditClass(c)}
+                    className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 px-2 py-1 border border-gray-200 dark:border-gray-700 rounded-lg">
+                    Edit
                   </button>
                   <button onClick={() => handleDeleteClass(c.id, c.name)}
                     className="text-xs text-red-500 hover:text-red-700 px-2 py-1 border border-red-200 dark:border-red-800 rounded-lg">
@@ -473,6 +550,7 @@ function ClassesTab({ onUpdate }) {
                 </div>
               )}
             </div>
+            )}
           </div>
         ))}
       </div>
