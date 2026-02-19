@@ -2,6 +2,14 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getGamificationProfile, recordLoginStreak, getLeaderboard } from '../api/gamification.api';
+import { getMyClasses, getAllClasses } from '../api/class.api';
+
+const SECTION_COLORS = {
+  A: { badge: 'bg-blue-600', text: 'text-blue-700 dark:text-blue-300', bg: 'bg-blue-50 dark:bg-blue-900/20', border: 'border-blue-200 dark:border-blue-800' },
+  B: { badge: 'bg-emerald-600', text: 'text-emerald-700 dark:text-emerald-300', bg: 'bg-emerald-50 dark:bg-emerald-900/20', border: 'border-emerald-200 dark:border-emerald-800' },
+  C: { badge: 'bg-purple-600', text: 'text-purple-700 dark:text-purple-300', bg: 'bg-purple-50 dark:bg-purple-900/20', border: 'border-purple-200 dark:border-purple-800' },
+  D: { badge: 'bg-orange-500', text: 'text-orange-700 dark:text-orange-300', bg: 'bg-orange-50 dark:bg-orange-900/20', border: 'border-orange-200 dark:border-orange-800' },
+};
 
 const studentCards = [
   { title: 'Messages', desc: 'Message your teachers directly', path: '/messages', color: 'bg-blue-500' },
@@ -30,7 +38,14 @@ export default function DashboardPage() {
   const [streakInfo, setStreakInfo] = useState(null);
   const [topPlayers, setTopPlayers] = useState([]);
 
+  const [myClasses, setMyClasses] = useState([]);
+
   const cards = user?.role === 'operator' ? operatorCards : user?.role === 'teacher' ? teacherCards : studentCards;
+
+  useEffect(() => {
+    const fetchClasses = user?.role === 'operator' ? getAllClasses : getMyClasses;
+    fetchClasses().then((res) => setMyClasses(res.data.classes || [])).catch(() => {});
+  }, [user]);
 
   useEffect(() => {
     if (user?.role !== 'student') return;
@@ -127,6 +142,46 @@ export default function DashboardPage() {
                 ))}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Classes preview */}
+      {myClasses.length > 0 && (
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-semibold text-gray-800 dark:text-gray-200">
+              {user?.role === 'operator' ? 'All Classes' : 'My Classes'}
+            </h2>
+            <Link to={user?.role === 'operator' ? '/operator' : '/classes'} className="text-xs text-primary-600 dark:text-primary-400 hover:underline">
+              View all
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+            {myClasses.map((c) => {
+              const sec = c.section || 'A';
+              const colors = SECTION_COLORS[sec] || SECTION_COLORS.A;
+              return (
+                <Link
+                  key={c.id}
+                  to={user?.role === 'operator' ? '/operator' : '/classes'}
+                  className={`flex flex-col gap-2 rounded-xl border ${colors.border} ${colors.bg} p-3 hover:shadow-sm transition-shadow`}
+                >
+                  <div className="flex items-center justify-between gap-1">
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full text-white ${colors.badge}`}>
+                      §{sec}
+                    </span>
+                    {c.enrolled && (
+                      <span className={`text-xs font-medium ${colors.text}`}>Enrolled</span>
+                    )}
+                  </div>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white leading-tight">{c.name}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {c.student_count ?? 0} student{(c.student_count ?? 0) !== 1 ? 's' : ''}
+                  </p>
+                </Link>
+              );
+            })}
           </div>
         </div>
       )}
