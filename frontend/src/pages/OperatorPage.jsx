@@ -382,10 +382,22 @@ function ClassesTab({ onUpdate }) {
         </form>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {classes.length === 0 ? (
-          <div className="col-span-full text-center py-12 text-gray-400">No classes yet. Create one above!</div>
-        ) : classes.map((c) => (
+      {classes.length === 0 ? (
+        <div className="text-center py-12 text-gray-400">No classes yet. Create one above!</div>
+      ) : (() => {
+        const grouped = classes.reduce((acc, c) => { if (!acc[c.name]) acc[c.name] = []; acc[c.name].push(c); return acc; }, {});
+        const groupNames = Object.keys(grouped).sort();
+        return (
+          <div className="space-y-8">
+            {groupNames.map((name) => (
+              <div key={name}>
+                <div className="flex items-center gap-3 mb-3">
+                  <h2 className="text-base font-bold text-gray-800 dark:text-gray-100">{name}</h2>
+                  <span className="text-xs text-gray-400">{grouped[name].length} section{grouped[name].length !== 1 ? 's' : ''}</span>
+                  <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {grouped[name].sort((a, b) => (a.section || '').localeCompare(b.section || '')).map((c) => (
           <div key={c.id} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
             {editingClass === c.id ? (
               <div className="space-y-2">
@@ -537,8 +549,13 @@ function ClassesTab({ onUpdate }) {
             </div>
             )}
           </div>
-        ))}
-      </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
     </div>
   );
 }
@@ -657,7 +674,10 @@ function EnrollmentsTab() {
 // ─── COURSE MATERIALS TAB ───────────────────────────────
 function MaterialsTab() {
   const [classes, setClasses] = useState([]);
-  const [selectedClass, setSelectedClass] = useState(null);
+  const [uniqueNames, setUniqueNames] = useState([]);
+  const [selectedName, setSelectedName] = useState('');
+  const [uploadMode, setUploadMode] = useState('shared'); // 'shared' | 'section'
+  const [selectedSectionId, setSelectedSectionId] = useState('');
   const [books, setBooks] = useState([]);
   const [title, setTitle] = useState('');
   const [file, setFile] = useState(null);
@@ -665,29 +685,43 @@ function MaterialsTab() {
 
   useEffect(() => {
     getAllClasses().then((res) => {
-      setClasses(res.data.classes);
-      if (res.data.classes.length > 0) setSelectedClass(res.data.classes[0]);
+      const all = res.data.classes;
+      setClasses(all);
+      const names = [...new Set(all.map((c) => c.name))].sort();
+      setUniqueNames(names);
+      if (names.length > 0) setSelectedName(names[0]);
     });
   }, []);
 
   useEffect(() => {
-    if (!selectedClass) return;
-    getPdfs(selectedClass.id).then((res) => setBooks(res.data.books)).catch(() => {});
-  }, [selectedClass]);
+    if (!selectedName) return;
+    const representative = classes.find((c) => c.name === selectedName);
+    if (representative) {
+      getPdfs(representative.id).then((res) => setBooks(res.data.books)).catch(() => {});
+    }
+    // Reset section selection when class name changes
+    const sections = classes.filter((c) => c.name === selectedName);
+    setSelectedSectionId(sections.length > 0 ? String(sections[0].id) : '');
+  }, [selectedName, classes]);
 
   const handleUpload = async (e) => {
     e.preventDefault();
-    if (!file || !title || !selectedClass) return;
+    if (!file || !title || !selectedName) return;
     setUploading(true);
     try {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('title', title);
-      formData.append('classId', selectedClass.id);
+      if (uploadMode === 'shared') {
+        formData.append('baseClassName', selectedName);
+      } else {
+        formData.append('classId', selectedSectionId);
+      }
       await uploadPdf(formData);
       setTitle('');
       setFile(null);
-      getPdfs(selectedClass.id).then((res) => setBooks(res.data.books));
+      const representative = classes.find((c) => c.name === selectedName);
+      if (representative) getPdfs(representative.id).then((res) => setBooks(res.data.books));
     } catch (err) {
       alert(err.response?.data?.error || 'Upload failed');
     } finally {
@@ -721,17 +755,40 @@ function MaterialsTab() {
     }
   };
 
+  const sectionsForName = classes.filter((c) => c.name === selectedName).sort((a, b) => (a.section || '').localeCompare(b.section || ''));
+
   return (
     <div>
-      <div className="mb-4">
-        <select value={selectedClass?.id || ''} onChange={(e) => setSelectedClass(classes.find((c) => c.id === parseInt(e.target.value)))}
+      {/* Class name selector */}
+      <div className="mb-4 flex items-center gap-3 flex-wrap">
+        <select value={selectedName} onChange={(e) => setSelectedName(e.target.value)}
           className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm outline-none bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">
-          {classes.map((c) => <option key={c.id} value={c.id}>{c.name}{c.section ? ` (Section ${c.section})` : ''} - {c.subject}</option>)}
+          {uniqueNames.map((name) => <option key={name} value={name}>{name}</option>)}
         </select>
+        <span className="text-xs text-gray-400">{sectionsForName.length} section{sectionsForName.length !== 1 ? 's' : ''}</span>
       </div>
 
       <form onSubmit={handleUpload} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4 mb-4">
         <h3 className="font-medium text-gray-900 dark:text-white mb-3">Upload PDF</h3>
+
+        {/* Upload scope toggle */}
+        <div className="flex gap-2 mb-3">
+          <button type="button" onClick={() => setUploadMode('shared')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium border-2 transition-colors ${uploadMode === 'shared' ? 'border-primary-500 bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400' : 'border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400'}`}>
+            All Sections
+          </button>
+          <button type="button" onClick={() => setUploadMode('section')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium border-2 transition-colors ${uploadMode === 'section' ? 'border-primary-500 bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400' : 'border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400'}`}>
+            Specific Section
+          </button>
+          {uploadMode === 'section' && (
+            <select value={selectedSectionId} onChange={(e) => setSelectedSectionId(e.target.value)}
+              className="px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-xs outline-none bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">
+              {sectionsForName.map((c) => <option key={c.id} value={c.id}>Section {c.section}</option>)}
+            </select>
+          )}
+        </div>
+
         <div className="space-y-3 sm:space-y-0 sm:flex sm:gap-3 sm:items-end">
           <div className="sm:flex-1">
             <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">Title</label>
@@ -758,7 +815,12 @@ function MaterialsTab() {
             <div key={book.id} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4 flex items-center justify-between">
               <div>
                 <h4 className="font-medium text-gray-900 dark:text-white">{book.title}</h4>
-                <p className="text-xs text-gray-400 mt-1">Uploaded {new Date(book.created_at).toLocaleDateString()}</p>
+                <p className="text-xs text-gray-400 mt-1">
+                  {book.base_class_name
+                    ? `Shared across all ${book.base_class_name} sections`
+                    : `Section ${classes.find((c) => c.id === book.class_id)?.section || '?'} only`}
+                  {' · '}Uploaded {new Date(book.created_at).toLocaleDateString()}
+                </p>
               </div>
               <div className="flex gap-2">
                 <button onClick={() => handleDownload(book)}

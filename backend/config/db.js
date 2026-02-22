@@ -35,6 +35,7 @@ class Database {
     this._createTables();
     this._migrateRoleConstraint();
     this._migrateClassSection();
+    this._migratePdfBaseClassName();
     this._seedOperator();
     this._save();
     this.ready = true;
@@ -355,6 +356,23 @@ class Database {
       }
     } catch (err) {
       console.error('Class section migration failed:', err.message);
+    }
+  }
+
+  // Migrate pdf_books: add base_class_name column for shared PDFs across sections
+  _migratePdfBaseClassName() {
+    try {
+      const result = this.db.exec("PRAGMA table_info(pdf_books)");
+      if (result.length > 0) {
+        const columns = result[0].values.map(row => row[1]);
+        if (!columns.includes('base_class_name')) {
+          this.db.run('ALTER TABLE pdf_books ADD COLUMN base_class_name TEXT DEFAULT NULL');
+          this._save();
+          console.log('Added base_class_name column to pdf_books');
+        }
+      }
+    } catch (err) {
+      console.error('pdf_books base_class_name migration failed:', err.message);
     }
   }
 

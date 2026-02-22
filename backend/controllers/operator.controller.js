@@ -176,7 +176,22 @@ exports.deleteClass = (req, res) => {
   }
 
   try {
-    // 1. Get all pdf_book ids for this class
+    // Before deleting: re-home any shared PDFs that use this class as their representative
+    const cls = db.prepare('SELECT name FROM classes WHERE id = ?').get(classId);
+    if (cls) {
+      const sibling = db.prepare(
+        'SELECT id FROM classes WHERE name = ? AND id != ? ORDER BY section ASC LIMIT 1'
+      ).get(cls.name, classId);
+      if (sibling) {
+        // Move shared PDFs to the sibling section
+        db.prepare(
+          'UPDATE pdf_books SET class_id = ? WHERE class_id = ? AND base_class_name IS NOT NULL'
+        ).run(sibling.id, classId);
+      }
+      // If no sibling, shared PDFs will be deleted below along with section-specific ones
+    }
+
+    // 1. Get all pdf_book ids specific to this class (not re-homed shared ones)
     const books = db.query(`SELECT id FROM pdf_books WHERE class_id = ${classId}`);
 
     for (const book of books) {
@@ -197,7 +212,7 @@ exports.deleteClass = (req, res) => {
       // 5. Delete quiz sets
       db.runRaw(`DELETE FROM quiz_sets WHERE pdf_book_id = ${book.id}`);
     }
-    // 6. Delete pdf books
+    // 6. Delete pdf books remaining for this class
     db.runRaw(`DELETE FROM pdf_books WHERE class_id = ${classId}`);
 
     // 7. Delete direct messages then conversations
@@ -390,20 +405,39 @@ exports.downloadPdf = (req, res) => {
   });
 };
 
-// Upload PDF (reuses the pdf controller logic)
+// Upload PDF — supports shared (all sections) or section-specific uploads
 exports.uploadPdf = async (req, res) => {
   const { extractText } = require('../services/pdf.service');
   const { structurePdfContent } = require('../services/ai.service');
 
   try {
-    const { classId, title } = req.body;
-    if (!classId || !title || !req.file) {
-      return res.status(400).json({ error: 'classId, title, and file are required' });
+    const { classId, baseClassName, title } = req.body;
+
+    if (!title || !req.file) {
+      return res.status(400).json({ error: 'title and file are required' });
+    }
+    if (!classId && !baseClassName) {
+      return res.status(400).json({ error: 'Either classId or baseClassName is required' });
     }
 
-    const cls = db.prepare('SELECT * FROM classes WHERE id = ?').get(parseInt(classId));
-    if (!cls) {
-      return res.status(404).json({ error: 'Class not found' });
+    let resolvedClassId;
+    let resolvedBaseClassName = null;
+
+    if (baseClassName && baseClassName.trim()) {
+      // Shared upload: find a representative section for the FK
+      const representative = db.prepare(
+        "SELECT id FROM classes WHERE name = ? ORDER BY section ASC LIMIT 1"
+      ).get(baseClassName.trim());
+      if (!representative) {
+        return res.status(404).json({ error: 'No classes found with that name' });
+      }
+      resolvedClassId = representative.id;
+      resolvedBaseClassName = baseClassName.trim();
+    } else {
+      // Section-specific upload
+      const cls = db.prepare('SELECT * FROM classes WHERE id = ?').get(parseInt(classId));
+      if (!cls) return res.status(404).json({ error: 'Class not found' });
+      resolvedClassId = cls.id;
     }
 
     const extracted = await extractText(req.file.path);
@@ -416,10 +450,10 @@ exports.uploadPdf = async (req, res) => {
     }
 
     const result = db.prepare(`
-      INSERT INTO pdf_books (class_id, title, file_path, extracted_text, unit_metadata, uploaded_by)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO pdf_books (class_id, base_class_name, title, file_path, extracted_text, unit_metadata, uploaded_by)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `).run(
-      parseInt(classId), title, req.file.path, extracted,
+      resolvedClassId, resolvedBaseClassName, title, req.file.path, extracted,
       unitMetadata ? JSON.stringify(unitMetadata) : null, req.user.id
     );
 
