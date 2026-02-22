@@ -593,13 +593,13 @@ function EnrollmentsTab() {
       <div className="mb-4">
         <select value={selectedClass?.id || ''} onChange={(e) => setSelectedClass(classes.find((c) => c.id === parseInt(e.target.value)))}
           className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm outline-none bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">
-          {classes.map((c) => <option key={c.id} value={c.id}>{c.name} - {c.subject}</option>)}
+          {classes.map((c) => <option key={c.id} value={c.id}>{c.name}{c.section ? ` (Section ${c.section})` : ''} - {c.subject}</option>)}
         </select>
       </div>
 
       {selectedClass && (
         <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4 mb-4">
-          <h3 className="font-medium text-gray-900 dark:text-white mb-3">Add Student to {selectedClass.name}</h3>
+          <h3 className="font-medium text-gray-900 dark:text-white mb-3">Add Student to {selectedClass.name}{selectedClass.section ? ` (Section ${selectedClass.section})` : ''}</h3>
           <div className="flex gap-2">
             <select value={selectedStudent} onChange={(e) => setSelectedStudent(e.target.value)}
               className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm outline-none bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">
@@ -726,7 +726,7 @@ function MaterialsTab() {
       <div className="mb-4">
         <select value={selectedClass?.id || ''} onChange={(e) => setSelectedClass(classes.find((c) => c.id === parseInt(e.target.value)))}
           className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm outline-none bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">
-          {classes.map((c) => <option key={c.id} value={c.id}>{c.name} - {c.subject}</option>)}
+          {classes.map((c) => <option key={c.id} value={c.id}>{c.name}{c.section ? ` (Section ${c.section})` : ''} - {c.subject}</option>)}
         </select>
       </div>
 
